@@ -1,6 +1,6 @@
 import React from 'react';
 import { Edit, Trash2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const mockTasks = [
   { id: 1, name: 'Daily Morning Video Post', createdAt: '2023-10-26', active: true },
@@ -10,6 +10,7 @@ const mockTasks = [
 ];
 
 const TaskList: React.FC = () => {
+  const navigate = useNavigate();
   return (
     <div className="container mx-auto p-8">
       <div className="flex justify-between items-center mb-6">
@@ -32,8 +33,14 @@ const TaskList: React.FC = () => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {mockTasks.map((task) => (
-              <tr key={task.id}>
-                <td className="px-6 py-4 whitespace-nowrap">
+              <tr
+                key={task.id}
+                onClick={() => navigate(`/tasks/${task.id}`)}
+                className="group cursor-pointer hover:bg-orange-50"
+                role="button"
+                aria-label={`Open ${task.name}`}
+              >
+                <td className="px-6 py-4 whitespace-nowrap border-l-2 border-transparent group-hover:border-[#f65e05]">
                   <div className="text-sm font-medium text-gray-900">{task.name}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -45,7 +52,7 @@ const TaskList: React.FC = () => {
                         {task.active ? 'Active' : 'Inactive'}
                     </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4 border-r-2 border-transparent group-hover:border-[#f65e05]">
                   <Link to="/editor" className="text-[#f65e05] hover:text-[#c44c04] inline-flex items-center">
                     <Edit className="w-4 h-4 mr-1"/> Edit Flow
                   </Link>

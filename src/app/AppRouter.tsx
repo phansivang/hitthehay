@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route } from 'react-router-dom';
 import Landing from '@/features/landing/Landing';
 import WorkflowEditor from '@/features/editor/WorkflowEditor';
 import TaskList from '@/features/tasks/TaskList';
+import TaskDetail from '@/features/tasks/TaskDetail';
 import Navbar from '@/shared/components/Navbar';
 import Login from '@/features/auth/Login';
 import Signup from '@/features/auth/Signup';
@@ -29,6 +30,31 @@ const AppRouter: React.FC = () => {
         />
         <Route
           path="/tasks"
+          element={
+            <div className="flex flex-col h-screen bg-[#f8f9fb] text-gray-800">
+              <Navbar />
+              <main className="flex-grow pt-14">
+                <TaskList />
+              </main>
+            </div>
+          }
+        />
+        <Route
+          path="/tasks/:id"
+          element={
+            <div className="flex flex-col h-screen bg-[#f8f9fb] text-gray-800">
+              <Navbar />
+              <main className="flex-grow pt-14">
+                <TaskDetail />
+              </main>
+            </div>
+          }
+        />
+      </Routes>
+      {/* Dashboard route using TaskList as the main content */}
+      <Routes>
+        <Route
+          path="/dashboard"
           element={
             <div className="flex flex-col h-screen bg-[#f8f9fb] text-gray-800">
               <Navbar />

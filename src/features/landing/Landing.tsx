@@ -28,7 +28,7 @@ const Landing: React.FC = () => {
           <div className="grid lg:grid-cols-2 gap-5 items-center">
             {/* Left: Content */}
             <div className="text-center lg:text-left">
-              <h1 className="text-[2.4rem] md:text-[3rem] lg:text-[3.0rem] font-bold text-gray-900 mb-6 leading-tight">
+              <h1 className="text-[2.4rem] md:text-[3rem] lg:text-[2.8rem] font-bold text-gray-900 mb-6 leading-tight">
                 Automate Your Visuals
                 <span className="block text-[#f65e05]">
                   While You Sleeping
@@ -248,32 +248,32 @@ const Landing: React.FC = () => {
           <div className="flex flex-wrap justify-center gap-8 mb-12">
             {/* TikTok */}
             <div className="group bg-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-110 border-2 border-transparent hover:border-[#f65e05]">
-              <div className="w-20 h-20 rounded-xl flex items-center justify-center mb-4 group-hover:shadow-lg transition-shadow bg-white">
-                <img src="/assets/platforms/tiktok_icon.png" alt="TikTok" className="w-12 h-12 object-contain" />
+					<div className="w-20 h-20 rounded-xl flex items-center justify-center mb-4 group-hover:shadow-lg transition-shadow bg-white">
+						<img src="/assets/platforms/tiktok_icon.png" alt="TikTok" className="w-16 h-16 object-contain" />
               </div>
               <h3 className="text-xl font-bold text-gray-900">TikTok</h3>
             </div>
 
             {/* YouTube */}
             <div className="group bg-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-110 border-2 border-transparent hover:border-[#f65e05]">
-              <div className="w-20 h-20 rounded-xl flex items-center justify-center mb-4 group-hover:shadow-lg transition-shadow bg-white">
-                <img src="/assets/platforms/youtube_icon.png" alt="YouTube" className="w-12 h-12 object-contain" />
+					<div className="w-20 h-20 rounded-xl flex items-center justify-center mb-4 group-hover:shadow-lg transition-shadow bg-white">
+						<img src="/assets/platforms/youtube_icon.png" alt="YouTube" className="w-16 h-16 object-contain" />
               </div>
               <h3 className="text-xl font-bold text-gray-900">YouTube</h3>
             </div>
 
             {/* Instagram */}
             <div className="group bg-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-110 border-2 border-transparent hover:border-[#f65e05]">
-              <div className="w-20 h-20 rounded-xl flex items-center justify-center mb-4 group-hover:shadow-lg transition-shadow bg-white">
-                <img src="/assets/platforms/instagram_icon.png" alt="Instagram" className="w-12 h-12 object-contain" />
+					<div className="w-20 h-20 rounded-xl flex items-center justify-center mb-4 group-hover:shadow-lg transition-shadow bg-white">
+						<img src="/assets/platforms/instagram_icon.png" alt="Instagram" className="w-16 h-16 object-contain" />
               </div>
               <h3 className="text-xl font-bold text-gray-900">Instagram</h3>
             </div>
 
             {/* Facebook */}
             <div className="group bg-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-110 border-2 border-transparent hover:border-[#f65e05]">
-              <div className="w-20 h-20 rounded-xl flex items-center justify-center mb-4 group-hover:shadow-lg transition-shadow bg-white">
-                <img src="/assets/platforms/facebook_icon.png" alt="Facebook" className="w-12 h-12 object-contain" />
+					<div className="w-20 h-20 rounded-xl flex items-center justify-center mb-4 group-hover:shadow-lg transition-shadow bg-white">
+						<img src="/assets/platforms/facebook_icon.png" alt="Facebook" className="w-16 h-16 object-contain" />
               </div>
               <h3 className="text-xl font-bold text-gray-900">Facebook</h3>
             </div>
@@ -567,7 +567,7 @@ const Landing: React.FC = () => {
               Built for creators who value time more than timelines.
             </p>
             <p className="text-gray-500 text-sm mt-2">
-              © 2025 TaskFlow. All rights reserved.
+              © 2025 Hit The Hay. All rights reserved.
             </p>
           </div>
         </div>

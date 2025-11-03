@@ -31,8 +31,18 @@ const Login: React.FC = () => {
     setErrors(newErrors);
 
     if (!newErrors.username && !newErrors.password) {
-      console.log('Login attempt:', formData);
-      navigate('/editor');
+      const isValid =
+        formData.username.trim().toLowerCase() === 'admin' &&
+        formData.password === 'admin';
+
+      if (isValid) {
+        navigate('/dashboard');
+      } else {
+        setErrors({
+          username: '',
+          password: 'Invalid credentials. Use admin / admin',
+        });
+      }
     }
   };
 
@@ -50,9 +60,8 @@ const Login: React.FC = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Workflow className="w-10 h-10 text-[#f65e05]" />
-            <span className="font-bold text-2xl text-gray-800">TaskFlow</span>
+            <span className="font-bold text-2xl text-gray-800">Hit The Hay</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back</h1>
           <p className="text-gray-600">Sign in to your account to continue</p>
         </div>
 

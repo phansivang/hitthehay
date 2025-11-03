@@ -50,7 +50,7 @@ const ForgotPassword: React.FC = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Workflow className="w-10 h-10 text-[#f65e05]" />
-            <span className="font-bold text-2xl text-gray-800">TaskFlow</span>
+            <span className="font-bold text-2xl text-gray-800">Hit The Hay</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Forgot Password</h1>
           <p className="text-gray-600">Enter your email to reset your password</p>

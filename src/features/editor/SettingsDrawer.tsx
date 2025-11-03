@@ -150,6 +150,9 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave }
         
         <div className="flex-grow p-6 overflow-y-auto">
           {renderSettings()}
+          <div className="mt-5 p-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700">
+            {node.data.description}
+          </div>
         </div>
         
         <div className="p-4 border-t border-gray-200 flex justify-end space-x-3">
