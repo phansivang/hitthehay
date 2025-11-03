@@ -1,0 +1,5 @@
+{
+  "name": "TaskFlow",
+  "description": "A modern drag-and-drop workflow web app inspired by n8n.io. Design and automate your tasks by connecting nodes in an intuitive visual editor. Create flows for video generation, social media posting, and more.",
+  "requestFramePermissions": []
+}
