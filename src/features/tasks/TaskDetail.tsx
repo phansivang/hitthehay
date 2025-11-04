@@ -19,94 +19,48 @@ interface TaskWithLogsData {
   logs: TaskLogItem[];
 }
 
-const mockTaskDetails: TaskWithLogsData[] = [
-  {
-    id: 1,
-    name: 'Daily Morning Video Post',
-    logs: [
-      {
-        logId: '1a',
-        title: 'Morning Highlights 10/26',
-        description: 'Latest highlights with captions and upbeat track.',
-        videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-        publishedAt: '2023-10-26T08:30:00Z',
-        platform: 'tiktok',
-      },
-      {
-        logId: '1b',
-        title: 'Morning Highlights 10/25',
-        description: 'Clipped best reactions, auto-subtitled and color corrected.',
-        videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-        publishedAt: '2023-10-25T08:30:00Z',
-        platform: 'instagram',
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Weekly YouTube Compilation',
-    logs: [
-      {
-        logId: '2a',
-        title: 'Week 43 Compilation',
-        description: 'Top moments stitched with AI transitions and background score.',
-        videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-        publishedAt: '2023-10-24T12:00:00Z',
-        platform: 'youtube',
-      },
-    ],
-  },
-  {
-    id: 3,
-    name: 'Ad Campaign - Fall 2023',
-    logs: [
-      {
-        logId: '3a',
-        title: 'Ad Variant B',
-        description: 'Hook-first variant optimized for watch-through.',
-        videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-        publishedAt: '2023-10-22T15:45:00Z',
-        platform: 'facebook',
-      },
-      {
-        logId: '3b',
-        title: 'Ad Variant A',
-        description: 'Primary CTA placement near 4s with end slate.',
-        videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-        publishedAt: '2023-10-21T10:10:00Z',
-        platform: 'instagram',
-      },
-    ],
-  },
-  {
-    id: 4,
-    name: 'Experimental Content Flow',
-    logs: [
-      {
-        logId: '4a',
-        title: 'Template V3 Test',
-        description: 'Testing new intro motion and color scheme.',
-        videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-        publishedAt: '2023-10-20T17:15:00Z',
-        platform: 'tiktok',
-      },
-    ],
-  },
-];
+// TODO: Replace with API call when backend is ready
+// Example: const task = await taskService.getTaskDetail(id);
 
 const platformIconSrc: Record<Platform, string> = {
-  youtube: '/youtube_icon.png',
-  tiktok: '/tiktok_icon.png',
-  instagram: '/instagram_icon.png',
-  facebook: '/facebook_icon.png',
+  youtube: '/assets/platforms/youtube_icon.png',
+  tiktok: '/assets/platforms/tiktok_icon.png',
+  instagram: '/assets/platforms/instagram_icon.png',
+  facebook: '/assets/platforms/facebook_icon.png',
 };
 
 const TaskDetail: React.FC = () => {
   const params = useParams();
   const id = Number(params.id);
-  const task = mockTaskDetails.find((t) => t.id === id);
+  const [task, setTask] = useState<TaskWithLogsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [openVideoUrl, setOpenVideoUrl] = useState<string | null>(null);
   const formattedLogs = useMemo(() => task?.logs ?? [], [task]);
+
+  // TODO: Replace with actual API call when backend is ready
+  // useEffect(() => {
+  //   taskService.getTaskDetail(id).then(setTask).catch(console.error).finally(() => setIsLoading(false));
+  // }, [id]);
+
+  useEffect(() => {
+    // Simulate loading - remove when API is ready
+    setIsLoading(false);
+    setTask(null);
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-8">
+        <div className="mb-6">
+          <Link to="/tasks" className="text-[#f65e05] hover:underline">← Back to Tasks</Link>
+        </div>
+        <div className="text-center py-12">
+          <div className="inline-block w-8 h-8 border-4 border-gray-300 border-t-[#f65e05] rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-600">Loading task details...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!task) {
     return (
@@ -114,7 +68,10 @@ const TaskDetail: React.FC = () => {
         <div className="mb-6">
           <Link to="/tasks" className="text-[#f65e05] hover:underline">← Back to Tasks</Link>
         </div>
-        <h1 className="text-2xl font-semibold">Task not found</h1>
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-semibold mb-2">Task not found</h1>
+          <p className="text-gray-600">The task with ID {id} could not be found.</p>
+        </div>
       </div>
     );
   }

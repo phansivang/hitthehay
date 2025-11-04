@@ -1,8 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Workflow } from 'lucide-react';
+import { useAuthContext } from '@/shared/auth/AuthContext';
 
 const Navbar: React.FC = () => {
+  const { isAdmin } = useAuthContext();
   return (
     <header className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-4 shadow-sm">
       <div className="flex items-center space-x-4">
@@ -17,6 +19,11 @@ const Navbar: React.FC = () => {
           <NavLink to="/tasks" className={({ isActive }) => `px-3 py-2 text-sm font-medium rounded-md ${isActive ? 'text-[#f65e05] bg-orange-50' : 'text-gray-600 hover:bg-gray-100'}`}>
             Tasks
           </NavLink>
+          {isAdmin && (
+            <NavLink to="/admin" className={({ isActive }) => `px-3 py-2 text-sm font-medium rounded-md ${isActive ? 'text-[#f65e05] bg-orange-50' : 'text-gray-600 hover:bg-gray-100'}`}>
+              Admin
+            </NavLink>
+          )}
         </nav>
       </div>
       <div className="flex items-center space-x-4">

@@ -86,5 +86,3 @@ export const NODE_LIBRARY: SidebarNode[] = [
     defaultSettings: { account: '', text: '' }
   }
 ];
-
-

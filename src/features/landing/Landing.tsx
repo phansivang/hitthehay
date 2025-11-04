@@ -57,9 +57,9 @@ const Landing: React.FC = () => {
             <div className="relative hidden lg:block">
               <div className="relative">
                 <img
-                  src="/Hero_Illustration.png"
+                  src="/assets/Hero_Illustration.png"
                   alt="Hero Illustration"
-                  className="w-full h-auto max-w-[14rem] lg:max-w-[17rem] xl:max-w-[20rem] mx-auto rounded-2xl shadow-2xl object-contain"
+                  className="w-full h-auto max-w-[14rem] lg:max-w-[17rem] xl:max-w-[30rem] mx-auto rounded-2xl object-contain"
                   loading="eager"
                 />
               </div>
