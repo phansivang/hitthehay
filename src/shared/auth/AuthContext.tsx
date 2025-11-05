@@ -11,7 +11,6 @@ interface AuthContextValue {
   user: AuthUser | null;
   signIn: (user: AuthUser) => void;
   signOut: () => void;
-  isAdmin: boolean;
 }
 
 const STORAGE_KEY = 'app_auth_user';
@@ -49,7 +48,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     signIn,
     signOut,
-    isAdmin: !!user && user.role === 'admin',
   }), [user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

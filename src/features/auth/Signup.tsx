@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { Workflow, Mail, Lock, User, Facebook } from 'lucide-react';
 import { useAuthContext } from '@/shared/auth/AuthContext';
 import { useGoogleAuth } from '@/shared/hooks/useGoogleAuth';
@@ -22,12 +22,18 @@ const Signup: React.FC = () => {
   });
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
+  const [isSignupLoading, setIsSignupLoading] = useState(false);
+  const [signupError, setSignupError] = useState<string | null>(null);
+  const [redirectTo, setRedirectTo] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name as keyof typeof errors]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+    if (signupError) {
+      setSignupError(null);
     }
   };
 
@@ -36,7 +42,7 @@ const Signup: React.FC = () => {
     return emailRegex.test(email);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors = {
       username: formData.username ? '' : 'Username is required',
@@ -60,8 +66,26 @@ const Signup: React.FC = () => {
     setErrors(newErrors);
 
     if (!newErrors.username && !newErrors.email && !newErrors.password && !newErrors.confirmPassword) {
-      console.log('Signup attempt:', formData);
-      navigate('/login');
+      try {
+        setIsSignupLoading(true);
+        setSignupError(null);
+
+        const response = await authService.signup({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+        });
+
+        signIn(response.user);
+
+        setRedirectTo('/editor');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to sign up';
+        setSignupError(errorMessage);
+        console.error('Signup error:', error);
+      } finally {
+        setIsSignupLoading(false);
+      }
     }
   };
 
@@ -72,20 +96,17 @@ const Signup: React.FC = () => {
       setGoogleError(null);
 
       // Call API to login with Google (backend handles both signup and login)
-      const response = await authService.loginWithGoogle({
-        id_token: idToken,
-        access_token: accessToken,
+      const response = await authService.loginWithOAuth({
+        provider: 'google',
+        idToken,
+        accessToken,
       });
 
       // Update auth context with user data
       signIn(response.user);
 
-      // Navigate based on user role
-      if (response.user.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/editor');
-      }
+      // Navigate to editor after signup
+      navigate('/editor');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to login with Google';
       setGoogleError(errorMessage);
@@ -119,6 +140,11 @@ const Signup: React.FC = () => {
   const handleFacebookSignIn = () => {
     console.log('Facebook Sign In');
   };
+
+  // Redirect after successful signup
+  if (redirectTo) {
+    return <Navigate to={redirectTo} replace />;
+  }
 
   return (
     <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center px-4 py-12">
@@ -226,11 +252,15 @@ const Signup: React.FC = () => {
               )}
             </div>
 
+            {signupError && (
+              <p className="text-sm text-red-600 text-center">{signupError}</p>
+            )}
             <button
               type="submit"
-              className="w-full bg-[#f65e05] text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#f65e05] focus:ring-offset-2"
+              disabled={isSignupLoading}
+              className="w-full bg-[#f65e05] text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#f65e05] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign Up
+              {isSignupLoading ? 'Signing up...' : 'Sign Up'}
             </button>
           </form>
 

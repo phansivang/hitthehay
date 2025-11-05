@@ -5,15 +5,11 @@
 
 import { apiClient } from '@/shared/lib/api-client';
 import type { AuthUser } from '@/shared/auth/AuthContext';
+import type { OAuthProvider, OAuthCredentials } from '@/shared/types/oauth';
 
 export interface LoginRequest {
   username_or_email: string;
   password: string;
-}
-
-export interface GoogleLoginRequest {
-  id_token: string;
-  access_token: string;
 }
 
 export interface LoginResponse {
@@ -22,7 +18,19 @@ export interface LoginResponse {
   refreshToken?: string;
 }
 
-interface BackendGoogleLoginResponse {
+export interface SignupRequest {
+  username: string;
+  email: string;
+  password: string;
+}
+
+export interface SignupResponse {
+  user: AuthUser;
+  token?: string;
+  refreshToken?: string;
+}
+
+interface BackendOAuthLoginResponse {
   data?: {
     access_token: string;
     user_id: number;
@@ -31,7 +39,7 @@ interface BackendGoogleLoginResponse {
   message?: string;
 }
 
-export interface GoogleLoginResponse {
+export interface OAuthLoginResponse {
   user: AuthUser;
   token?: string;
   refreshToken?: string;
@@ -42,6 +50,37 @@ export interface ApiErrorResponse {
   error?: string;
   statusCode?: number;
 }
+
+/**
+ * Transform backend OAuth response to frontend format
+ */
+const transformOAuthResponse = (data: BackendOAuthLoginResponse['data']): OAuthLoginResponse => {
+  if (!data) {
+    throw new Error('Invalid response from server: missing data');
+  }
+
+  const role: 'admin' | 'user' = data.is_super_admin ? 'admin' : 'user';
+  const user: AuthUser = {
+    username: `user_${data.user_id}`,
+    role,
+  };
+
+  return {
+    user,
+    token: data.access_token,
+  };
+};
+
+/**
+ * Store auth token in localStorage
+ */
+const storeAuthToken = (token: string): void => {
+  try {
+    localStorage.setItem('app_auth_token', JSON.stringify(token));
+  } catch (error) {
+    console.warn('Failed to store auth token:', error);
+  }
+};
 
 /**
  * Authentication service for API calls
@@ -59,18 +98,12 @@ export const authService = {
         { skipAuth: true }
       );
 
-      // Store auth token if provided
       if (response.token) {
-        try {
-          localStorage.setItem('app_auth_token', JSON.stringify(response.token));
-        } catch (error) {
-          console.warn('Failed to store auth token:', error);
-        }
+        storeAuthToken(response.token);
       }
 
       return response;
     } catch (error) {
-      // Re-throw with better error handling
       if (error instanceof Error) {
         throw error;
       }
@@ -79,57 +112,63 @@ export const authService = {
   },
 
   /**
-   * Login with Google OAuth
-   * POST /auths/google
+   * Sign up with username, email, and password
+   * POST /client/auths/signup
    */
-  async loginWithGoogle(credentials: GoogleLoginRequest): Promise<GoogleLoginResponse> {
+  async signup(credentials: SignupRequest): Promise<SignupResponse> {
     try {
-      const backendResponse = await apiClient.post<BackendGoogleLoginResponse>(
-        '/client/auths/google',
+      const response = await apiClient.post<SignupResponse>(
+        '/client/auths/signup',
         credentials,
         { skipAuth: true }
       );
 
-      // Transform backend response to frontend format
-      // Handle both uppercase and lowercase field names (Go JSON marshaling)
-      const data = backendResponse.data;
-      
-      if (!data) {
-        throw new Error('Invalid response from server: missing data');
-      }
-      
-      // Map is_superadmin to role
-      const role: 'admin' | 'user' = data.is_super_admin ? 'admin' : 'user';
-      
-      // Create AuthUser object
-      // Note: Backend doesn't return username, so we use a placeholder
-      // You may want to fetch full user details after login
-      const user: AuthUser = {
-        username: `user_${data.user_id}`, // Placeholder - you may want to fetch actual username
-        role,
-      };
-
-      // Store auth token
-      const token = data.access_token;
-      if (token) {
-        try {
-          localStorage.setItem('app_auth_token', JSON.stringify(token));
-        } catch (error) {
-          console.warn('Failed to store auth token:', error);
-        }
+      if (response.token) {
+        storeAuthToken(response.token);
       }
 
-      // Return frontend-expected format
-      return {
-        user,
-        token,
-      };
+      return response;
     } catch (error) {
-      // Re-throw with better error handling
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Failed to login with Google');
+      throw new Error('Failed to sign up');
+    }
+  },
+
+  /**
+   * Login with OAuth provider (Google, Facebook, etc.)
+   * POST /client/auths/{provider}
+   */
+  async loginWithOAuth(credentials: OAuthCredentials): Promise<OAuthLoginResponse> {
+    try {
+      const { provider } = credentials;
+      
+      // Map credentials to backend format based on provider
+      const backendPayload = provider === 'google'
+        ? { id_token: credentials.idToken, access_token: credentials.accessToken }
+        : { user_id: credentials.userId!, access_token: credentials.accessToken };
+
+      console.log(backendPayload);
+
+      const backendResponse = await apiClient.post<BackendOAuthLoginResponse>(
+        `/client/auths/${provider}`,
+        backendPayload,
+        { skipAuth: true }
+      );
+
+      const response = transformOAuthResponse(backendResponse.data);
+
+      if (response.token) {
+        storeAuthToken(response.token);
+      }
+
+      return response;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error(`Failed to login with ${credentials.provider}`);
     }
   },
 
@@ -144,4 +183,3 @@ export const authService = {
     }
   },
 };
-
