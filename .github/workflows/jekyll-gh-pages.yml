@@ -29,13 +29,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Set base path for GitHub Pages
+        id: base_path
+        run: |
+          REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          if [[ "$REPO_NAME" == *.github.io ]]; then
+            echo "base=/" >> $GITHUB_OUTPUT
+          else
+            echo "base=/$REPO_NAME/" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build project
+        env:
+          VITE_BASE: ${{ steps.base_path.outputs.base }}
         run: npm run build
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './build'     # This should match your React build output folder
+          path: './dist'     # Vite outputs to 'dist' folder
 
   deploy:
     environment:
