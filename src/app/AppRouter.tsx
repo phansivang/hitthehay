@@ -12,8 +12,12 @@ import TermsOfService from '@/features/legal/TermsOfService';
 import PrivacyPolicy from '@/features/legal/PrivacyPolicy';
 
 const AppRouter: React.FC = () => {
+  // Use Vite's BASE_URL for GitHub Pages compatibility
+  // Vite's BASE_URL already includes the correct base path
+  const basePath = import.meta.env.BASE_URL;
+  
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basePath}>
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
