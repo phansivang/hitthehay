@@ -546,9 +546,8 @@ const Landing: React.FC = () => {
             <div>
               <h4 className="text-white font-bold text-lg mb-2">Legal</h4>
               <ul className="space-y-2">
-                <li><a href="#" className="hover:text-white transition-colors">Terms</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Privacy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Security</a></li>
+                <li><Link to="/terms" className="hover:text-white transition-colors">Terms</Link></li>
+                <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link></li>
               </ul>
             </div>
             

@@ -255,6 +255,19 @@ const Signup: React.FC = () => {
             {signupError && (
               <p className="text-sm text-red-600 text-center">{signupError}</p>
             )}
+
+            <div className="text-sm text-gray-600">
+              By signing up, you agree to our{' '}
+              <Link to="/terms" className="text-[#f65e05] hover:underline">
+                Terms of Service
+              </Link>{' '}
+              and{' '}
+              <Link to="/privacy" className="text-[#f65e05] hover:underline">
+                Privacy Policy
+              </Link>
+              .
+            </div>
+
             <button
               type="submit"
               disabled={isSignupLoading}

@@ -8,7 +8,8 @@ import Navbar from '@/shared/components/Navbar';
 import Login from '@/features/auth/Login';
 import Signup from '@/features/auth/Signup';
 import ForgotPassword from '@/features/auth/ForgotPassword';
-import { AuthProvider } from '@/shared/auth/AuthContext';
+import TermsOfService from '@/features/legal/TermsOfService';
+import PrivacyPolicy from '@/features/legal/PrivacyPolicy';
 
 const AppRouter: React.FC = () => {
   return (
@@ -18,6 +19,8 @@ const AppRouter: React.FC = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route
           path="/editor"
           element={
