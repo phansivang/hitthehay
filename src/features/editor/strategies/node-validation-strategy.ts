@@ -10,9 +10,9 @@ import { NodeCategory, type NodeData } from '@/shared/types';
  * Node validation result
  */
 export interface ValidationResult {
-  readonly isValid: boolean;
-  readonly allowedCategories: readonly NodeCategory[];
-  readonly errorMessage?: string;
+  isValid: boolean;
+  allowedCategories: NodeCategory[];
+  errorMessage?: string;
 }
 
 /**

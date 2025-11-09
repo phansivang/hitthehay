@@ -31,12 +31,12 @@ export interface NodeData {
 }
 
 export interface SidebarNode {
-  readonly type: string;
-  readonly label: string;
-  readonly description: string;
-  readonly icon: ComponentType<{ className?: string }>;
-  readonly category: NodeCategory;
-  readonly defaultSettings: NodeSettings;
+  type: string;
+  label: string;
+  description: string;
+  icon: ComponentType<{ className?: string }>;
+  category: NodeCategory;
+  defaultSettings: NodeSettings;
 }
 
 /**
@@ -46,17 +46,18 @@ export type NodeStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'DELETED';
 
 // API Response Types
 export interface ApiNode {
-  readonly id: string;
-  readonly name: string;
-  readonly description: string;
-  readonly status: NodeStatus;
-  readonly sequence: number;
-  readonly created_at: string;
-  readonly updated_at: string;
+  id: string;
+  name: string;
+  description: string;
+  status: NodeStatus;
+  sequence: number;
+  code: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ApiNodesResponse {
-  readonly data: readonly ApiNode[];
-  readonly message: string;
+  data: ApiNode[];
+  message: string;
 }
 

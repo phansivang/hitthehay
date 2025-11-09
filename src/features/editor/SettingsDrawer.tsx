@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Loader2, Play } from 'lucide-react';
 import { Node } from 'reactflow';
 import type { NodeData } from '@/shared/types';
+import { fileUploadService } from '@/shared/services/fileUploadService';
 
 interface SettingsDrawerProps {
   node: Node<NodeData> | null;
@@ -9,11 +10,35 @@ interface SettingsDrawerProps {
   onSave: (nodeId: string, settings: any) => void;
 }
 
+interface UploadedFile {
+  id?: string;
+  name: string;
+  url?: string;
+  key?: string;
+  status: 'pending' | 'uploading' | 'success' | 'error';
+  error?: string;
+}
+
 const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave }) => {
   const [settings, setSettings] = useState(node?.data.settings || {});
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [loadingVideoUrl, setLoadingVideoUrl] = useState(false);
 
   useEffect(() => {
     setSettings(node?.data.settings || {});
+    // Initialize uploaded files from settings if they exist
+    if (node?.data.settings?.files) {
+      const files = Array.isArray(node.data.settings.files) 
+        ? node.data.settings.files.map((file: string | UploadedFile) => 
+            typeof file === 'string' 
+              ? { name: file, status: 'success' as const }
+              : file
+          )
+        : [];
+      setUploadedFiles(files);
+    }
   }, [node]);
 
   if (!node) {
@@ -34,25 +59,119 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave }
     if (!settings) return <p>No settings available for this node.</p>;
 
     if (node.data.nodeType === 'videoUpload') {
-      const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-          const newFileNames = Array.from(e.target.files).map(file => file.name);
-          setSettings((prev: any) => ({
-            ...prev,
-            files: [...(prev.files || []), ...newFileNames]
-          }));
-          e.target.value = '';
+      const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) {
+          return;
         }
+
+        const files = Array.from(e.target.files);
+        setUploading(true);
+
+        // Add files to the list as pending first
+        setUploadedFiles((prev) => {
+          const newFiles: UploadedFile[] = files.map(file => ({
+            name: file.name,
+            status: 'pending' as const,
+          }));
+          return [...prev, ...newFiles];
+        });
+
+        // Upload each file - use file name as identifier for reliable tracking
+        const uploadPromises = files.map(async (file) => {
+          // Update status to uploading
+          setUploadedFiles((prev) => {
+            return prev.map((f) =>
+              f.name === file.name ? { ...f, status: 'uploading' as const } : f
+            );
+          });
+
+          try {
+            // Upload the file
+            const response = await fileUploadService.uploadFile(file);
+            
+            // Update status to success with response data
+            setUploadedFiles((prev) => {
+              return prev.map((f) =>
+                f.name === file.name
+                  ? {
+                      name: file.name,
+                      status: 'success' as const,
+                      id: response.data.key,
+                      url: response.data.url,
+                      key: response.data.key,
+                    }
+                  : f
+              );
+            });
+
+            // Update settings with uploaded file info
+            setSettings((prevSettings: any) => {
+              const currentFiles = prevSettings.files || [];
+              const fileInfo = {
+                name: file.name,
+                key: response.data.key,
+                url: response.data.url,
+              };
+              return {
+                ...prevSettings,
+                files: [...currentFiles, fileInfo],
+              };
+            });
+          } catch (error) {
+            console.error('Error uploading file:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+            
+            // Update status to error
+            setUploadedFiles((prev) => {
+              return prev.map((f) =>
+                f.name === file.name
+                  ? {
+                      ...f,
+                      status: 'error' as const,
+                      error: errorMessage,
+                    }
+                  : f
+              );
+            });
+          }
+        });
+
+        await Promise.all(uploadPromises);
+        setUploading(false);
+        e.target.value = '';
       };
 
       const handleRemoveFile = (indexToRemove: number) => {
-        setSettings((prev: any) => ({
-          ...prev,
-          files: prev.files.filter((_: string, index: number) => index !== indexToRemove)
-        }));
+        setUploadedFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
+        setSettings((prev: any) => {
+          const currentFiles = prev.files || [];
+          return {
+            ...prev,
+            files: currentFiles.filter((_: unknown, index: number) => index !== indexToRemove),
+          };
+        });
       };
 
-      const currentFiles: string[] = settings.files || [];
+      const handlePreviewVideo = async (file: UploadedFile) => {
+        if (!file.key) {
+          console.error('File key is missing');
+          return;
+        }
+
+        setLoadingVideoUrl(true);
+        try {
+          const videoUrl = await fileUploadService.getFileViewUrl(file.key);
+          setVideoPreviewUrl(videoUrl);
+        } catch (error) {
+          console.error('Error fetching video URL:', error);
+          // Fallback to using the stored URL if available
+          if (file.url) {
+            setVideoPreviewUrl(file.url);
+          }
+        } finally {
+          setLoadingVideoUrl(false);
+        }
+      };
 
       return (
         <div>
@@ -80,16 +199,74 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave }
             </div>
           </div>
           
-          {currentFiles.length > 0 && (
+          {uploading && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-700">
+              <div className="flex items-center">
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Uploading files...
+              </div>
+            </div>
+          )}
+
+          {uploadedFiles.length > 0 && (
             <div className="mt-4">
-              <h4 className="text-sm font-medium text-gray-600">Selected files:</h4>
+              <h4 className="text-sm font-medium text-gray-600">Uploaded files:</h4>
               <ul className="mt-2 space-y-2 max-h-48 overflow-y-auto">
-                {currentFiles.map((fileName, index) => (
-                  <li key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded-md text-sm">
-                    <span className="text-gray-800 truncate" title={fileName}>{fileName}</span>
-                    <button onClick={() => handleRemoveFile(index)} className="ml-2 text-red-500 hover:text-red-700 flex-shrink-0">
-                      <X className="w-4 h-4" />
-                    </button>
+                {uploadedFiles.map((file, index) => (
+                  <li 
+                    key={file.id || `${file.name}-${index}`} 
+                    className={`flex items-center justify-between p-2 rounded-md text-sm ${
+                      file.status === 'error' 
+                        ? 'bg-red-50 border border-red-200' 
+                        : file.status === 'uploading'
+                        ? 'bg-blue-50 border border-blue-200'
+                        : 'bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <span className="text-gray-800 truncate block" title={file.name}>
+                        {file.name}
+                      </span>
+                      {file.status === 'uploading' && (
+                        <span className="text-xs text-blue-600">Uploading...</span>
+                      )}
+                      {file.status === 'error' && (
+                        <span className="text-xs text-red-600">{file.error || 'Upload failed'}</span>
+                      )}
+                      {file.status === 'success' && (
+                        <span className="text-xs text-green-600">Uploaded successfully</span>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2 ml-2">
+                      {file.status === 'success' && file.key && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePreviewVideo(file);
+                          }}
+                          className="text-[#f65e05] hover:text-[#c44c04] flex-shrink-0 p-1 rounded hover:bg-orange-50 transition-colors"
+                          title="Preview video"
+                          disabled={loadingVideoUrl}
+                        >
+                          {loadingVideoUrl ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Play className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveFile(index);
+                        }} 
+                        className="text-red-500 hover:text-red-700 flex-shrink-0 p-1 rounded hover:bg-red-50 transition-colors"
+                        disabled={file.status === 'uploading'}
+                        title="Remove file"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -134,37 +311,70 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave }
   };
 
   return (
-    <div className={`absolute top-0 right-0 h-full w-96 bg-white shadow-2xl border-l border-gray-200 z-10 transform transition-transform duration-300 ease-in-out ${node ? 'translate-x-0' : 'translate-x-full'}`}>
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 flex items-center justify-center bg-orange-50 text-[#f65e05] rounded-md">
-               {React.isValidElement(node.data.icon) ? React.createElement(node.data.icon.type, { className: 'w-5 h-5' }) : null}
+    <>
+      <div className={`absolute top-0 right-0 h-full w-96 bg-white shadow-2xl border-l border-gray-200 z-10 transform transition-transform duration-300 ease-in-out ${node ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="flex flex-col h-full">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 flex items-center justify-center bg-orange-50 text-[#f65e05] rounded-md">
+                 {React.isValidElement(node.data.icon) ? React.createElement(node.data.icon.type, { className: 'w-5 h-5' }) : null}
+              </div>
+              <h2 className="text-lg font-semibold">{node.data.label} Settings</h2>
             </div>
-            <h2 className="text-lg font-semibold">{node.data.label} Settings</h2>
+            <button onClick={onClose} className="p-2 rounded-md hover:bg-gray-100">
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button onClick={onClose} className="p-2 rounded-md hover:bg-gray-100">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        
-        <div className="flex-grow p-6 overflow-y-auto">
-          {renderSettings()}
-          <div className="mt-5 p-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700">
-            {node.data.description}
+          
+          <div className="flex-grow p-6 overflow-y-auto">
+            {renderSettings()}
+            <div className="mt-5 p-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700">
+              {node.data.description}
+            </div>
           </div>
-        </div>
-        
-        <div className="p-4 border-t border-gray-200 flex justify-end space-x-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
-            Cancel
-          </button>
-          <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-[#f65e05] border border-transparent rounded-md shadow-sm hover:bg-[#dd5504]">
-            Save Changes
-          </button>
+          
+          <div className="p-4 border-t border-gray-200 flex justify-end space-x-3">
+            <button onClick={onClose} className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
+              Cancel
+            </button>
+            <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-[#f65e05] border border-transparent rounded-md shadow-sm hover:bg-[#dd5504]">
+              Save Changes
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Video Preview Modal */}
+      {videoPreviewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            onClick={() => setVideoPreviewUrl(null)}
+          />
+          <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] p-4 z-10">
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-20 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 transition-colors"
+              onClick={() => setVideoPreviewUrl(null)}
+              aria-label="Close video"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="w-full h-full flex items-center justify-center">
+              <video 
+                className="w-full h-auto max-h-[80vh] rounded-md" 
+                src={videoPreviewUrl} 
+                controls 
+                autoPlay
+                onError={(e) => {
+                  console.error('Error loading video:', e);
+                  setVideoPreviewUrl(null);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

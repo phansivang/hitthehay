@@ -31,14 +31,21 @@ export interface SignupResponse {
   refreshToken?: string;
 }
 
-interface BackendOAuthLoginResponse {
-  data?: {
-    access_token: string;
-    user_id: number;
-    is_super_admin: boolean;
-  };
-  message?: string;
+/**
+ * Backend API response format
+ */
+interface BackendResponse<T> {
+  data: T;
+  message: string;
 }
+
+interface BackendOAuthLoginData {
+  access_token: string;
+  user_id: number;
+  is_super_admin: boolean;
+}
+
+type BackendOAuthLoginResponse = BackendResponse<BackendOAuthLoginData>;
 
 export interface OAuthLoginResponse {
   user: AuthUser;
@@ -55,11 +62,7 @@ export interface ApiErrorResponse {
 /**
  * Transform backend OAuth response to frontend format
  */
-const transformOAuthResponse = (data: BackendOAuthLoginResponse['data']): OAuthLoginResponse => {
-  if (!data) {
-    throw new Error('Invalid response from server: missing data');
-  }
-
+const transformOAuthResponse = (data: BackendOAuthLoginData): OAuthLoginResponse => {
   const role: 'admin' | 'user' = data.is_super_admin ? 'admin' : 'user';
   const user: AuthUser = {
     username: `user_${data.user_id}`,
@@ -88,12 +91,12 @@ export const authService = {
    * POST /client/auths/login
    */
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const response = await apiClient.post<LoginResponse>(
+    const backendResponse = await apiClient.post<BackendResponse<LoginResponse>>(
       '/client/auths/login',
-      credentials,
-      { skipAuth: true }
+      credentials
     );
 
+    const response = backendResponse.data;
     response.token && storeAuthToken(response.token);
 
     return response;
@@ -104,12 +107,12 @@ export const authService = {
    * POST /client/auths/signup
    */
   async signup(credentials: SignupRequest): Promise<SignupResponse> {
-    const response = await apiClient.post<SignupResponse>(
+    const backendResponse = await apiClient.post<BackendResponse<SignupResponse>>(
       '/client/auths/signup',
-      credentials,
-      { skipAuth: true }
+      credentials
     );
 
+    const response = backendResponse.data;
     response.token && storeAuthToken(response.token);
 
     return response;
@@ -147,8 +150,7 @@ export const authService = {
 
     const backendResponse = await apiClient.post<BackendOAuthLoginResponse>(
       `/client/auths/${provider}`,
-      payload,
-      { skipAuth: true }
+      payload
     );
 
     const response = transformOAuthResponse(backendResponse.data);

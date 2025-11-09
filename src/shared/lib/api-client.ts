@@ -28,9 +28,7 @@ export class ApiClientError extends Error {
   }
 }
 
-interface RequestOptions extends RequestInit {
-  skipAuth?: boolean;
-}
+interface RequestOptions extends RequestInit {}
 
 /**
  * Base API client with error handling and request configuration
@@ -65,16 +63,14 @@ export class ApiClient {
    * Make HTTP request with error handling
    */
   private async request<T>(endpoint: string,options: RequestOptions = {}): Promise<T> {
-    const { skipAuth = false, ...fetchOptions } = options;
-
     const url = this.buildURL(endpoint);
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      ...fetchOptions.headers,
+      ...options.headers,
     };
 
-    // Add auth token if available and not skipped
-    const token = skipAuth ? null : this.getAuthToken();
+    // Add auth token if available
+    const token = this.getAuthToken();
     const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
     
     const finalHeaders: HeadersInit = {
@@ -84,21 +80,22 @@ export class ApiClient {
 
     try {
       const response = await fetch(url, {
-        ...fetchOptions,
+        ...options,
         headers: finalHeaders,
       });
 
-      const contentType = response.headers.get('content-type');
-      const isJson = contentType?.includes('application/json');
-
-      // Use type guard pattern instead of if/else
-      const parseResponse = async (): Promise<unknown> => {
-        return isJson 
-          ? response.json().catch(() => null)
-          : response.text().then(text => text || null);
-      };
-
-      const data = await parseResponse();
+      // Backend always returns JSON, so always parse as JSON
+      let data: unknown;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        // If JSON parsing fails, throw an error
+        throw new ApiClientError(
+          `Failed to parse response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`,
+          response.status,
+          null
+        );
+      }
 
       // Type guard for error responses
       const isErrorResponse = !response.ok;
@@ -163,6 +160,79 @@ export class ApiClient {
       ...options,
       method: 'DELETE',
     });
+  }
+
+  /**
+   * POST request for file upload (form-data)
+   */
+  async postFile<T>(endpoint: string, file: File, options?: RequestOptions): Promise<T> {
+    const url = this.buildURL(endpoint);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Build headers without Content-Type (browser will set it automatically with boundary for FormData)
+    const headers: Record<string, string> = {};
+    
+    // Copy existing headers except Content-Type
+    if (options?.headers) {
+      const headerEntries = options.headers instanceof Headers 
+        ? Array.from(options.headers.entries())
+        : options.headers instanceof Array
+        ? options.headers
+        : Object.entries(options.headers);
+      
+      for (const [key, value] of headerEntries) {
+        if (key.toLowerCase() !== 'content-type') {
+          headers[key] = typeof value === 'string' ? value : String(value);
+        }
+      }
+    }
+
+    // Add auth token if available
+    const token = this.getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        method: 'POST',
+        headers: Object.keys(headers).length > 0 ? headers : undefined,
+        body: formData,
+      });
+
+      // Backend always returns JSON, so always parse as JSON
+      let data: unknown;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        // If JSON parsing fails, throw an error
+        throw new ApiClientError(
+          `Failed to parse response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`,
+          response.status,
+          null
+        );
+      }
+
+      if (!response.ok) {
+        const errorMessage = (data as { message?: string })?.message ?? `Request failed with status ${response.status}`;
+        throw new ApiClientError(errorMessage, response.status, data);
+      }
+
+      return data as T;
+    } catch (error) {
+      if (error instanceof ApiClientError) {
+        throw error;
+      }
+
+      const typedError = createTypedError(error);
+      throw new ApiClientError(
+        typedError.message,
+        0,
+        typedError.originalError
+      );
+    }
   }
 }
 
