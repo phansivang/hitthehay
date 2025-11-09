@@ -61,18 +61,9 @@ declare global {
  * Note: You'll need to set up a Google OAuth client ID in your Google Cloud Console
  * and add it to your environment variables
  */
-// Get Google Client ID from environment variable or use empty string
-// Using type assertion to access Vite env variables
-const getEnvVar = (key: string, defaultValue: string): string => {
-  try {
-    // @ts-ignore - Vite env variables are available at runtime
-    return import.meta.env[key] || defaultValue;
-  } catch {
-    return defaultValue;
-  }
-};
+import { getEnvironmentVariable } from './utils/environment';
 
-const GOOGLE_CLIENT_ID = getEnvVar('VITE_GOOGLE_CLIENT_ID', '');
+const GOOGLE_CLIENT_ID = getEnvironmentVariable('VITE_GOOGLE_CLIENT_ID', '');
 
 /**
  * Load Google Identity Services script

@@ -4,18 +4,19 @@ import Landing from '@/features/landing/Landing';
 import WorkflowEditor from '@/features/editor/WorkflowEditor';
 import TaskList from '@/features/tasks/TaskList';
 import TaskDetail from '@/features/tasks/TaskDetail';
-import Navbar from '@/shared/components/Navbar';
 import Login from '@/features/auth/Login';
 import Signup from '@/features/auth/Signup';
 import ForgotPassword from '@/features/auth/ForgotPassword';
 import TermsOfService from '@/features/legal/TermsOfService';
 import PrivacyPolicy from '@/features/legal/PrivacyPolicy';
+import { NodesProvider } from '@/shared/context/NodesContext';
+import { Layout } from '@/shared/components/Layout';
 
 const AppRouter: React.FC = () => {
   // Use Vite's BASE_URL for GitHub Pages compatibility
-  // Vite's BASE_URL already includes the correct base path
-  const basePath = import.meta.env.BASE_URL;
-  
+  // @ts-expect-error - Vite env variables are available at runtime
+  const basePath = import.meta.env.BASE_URL || '/';
+
   return (
     <BrowserRouter basename={basePath}>
       <Routes>
@@ -28,45 +29,35 @@ const AppRouter: React.FC = () => {
         <Route
           path="/editor"
           element={
-            <div className="flex flex-col h-screen bg-[#f8f9fb] text-gray-800">
-              <Navbar />
-              <main className="flex-grow pt-14">
+            <NodesProvider>
+              <Layout>
                 <WorkflowEditor />
-              </main>
-            </div>
+              </Layout>
+            </NodesProvider>
           }
         />
         <Route
           path="/tasks"
           element={
-            <div className="flex flex-col h-screen bg-[#f8f9fb] text-gray-800">
-              <Navbar />
-              <main className="flex-grow pt-14">
-                <TaskList />
-              </main>
-            </div>
+            <Layout>
+              <TaskList />
+            </Layout>
           }
         />
         <Route
           path="/tasks/:id"
           element={
-            <div className="flex flex-col h-screen bg-[#f8f9fb] text-gray-800">
-              <Navbar />
-              <main className="flex-grow pt-14">
-                <TaskDetail />
-              </main>
-            </div>
+            <Layout>
+              <TaskDetail />
+            </Layout>
           }
         />
         <Route
           path="/dashboard"
           element={
-            <div className="flex flex-col h-screen bg-[#f8f9fb] text-gray-800">
-              <Navbar />
-              <main className="flex-grow pt-14">
-                <TaskList />
-              </main>
-            </div>
+            <Layout>
+              <TaskList />
+            </Layout>
           }
         />
       </Routes>

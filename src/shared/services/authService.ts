@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from '@/shared/lib/api-client';
+import { storageService } from '@/shared/lib/utils/storage';
 import type { AuthUser } from '@/shared/auth/AuthContext';
 import type { OAuthProvider, OAuthCredentials } from '@/shared/types/oauth';
 
@@ -72,14 +73,10 @@ const transformOAuthResponse = (data: BackendOAuthLoginResponse['data']): OAuthL
 };
 
 /**
- * Store auth token in localStorage
+ * Store auth token using storage service
  */
 const storeAuthToken = (token: string): void => {
-  try {
-    localStorage.setItem('app_auth_token', JSON.stringify(token));
-  } catch (error) {
-    console.warn('Failed to store auth token:', error);
-  }
+  storageService.set('app_auth_token', token);
 };
 
 /**
@@ -91,24 +88,15 @@ export const authService = {
    * POST /client/auths/login
    */
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    try {
-      const response = await apiClient.post<LoginResponse>(
-        '/client/auths/login',
-        credentials,
-        { skipAuth: true }
-      );
+    const response = await apiClient.post<LoginResponse>(
+      '/client/auths/login',
+      credentials,
+      { skipAuth: true }
+    );
 
-      if (response.token) {
-        storeAuthToken(response.token);
-      }
+    response.token && storeAuthToken(response.token);
 
-      return response;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Failed to login');
-    }
+    return response;
   },
 
   /**
@@ -116,24 +104,15 @@ export const authService = {
    * POST /client/auths/signup
    */
   async signup(credentials: SignupRequest): Promise<SignupResponse> {
-    try {
-      const response = await apiClient.post<SignupResponse>(
-        '/client/auths/signup',
-        credentials,
-        { skipAuth: true }
-      );
+    const response = await apiClient.post<SignupResponse>(
+      '/client/auths/signup',
+      credentials,
+      { skipAuth: true }
+    );
 
-      if (response.token) {
-        storeAuthToken(response.token);
-      }
+    response.token && storeAuthToken(response.token);
 
-      return response;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Failed to sign up');
-    }
+    return response;
   },
 
   /**
@@ -141,45 +120,49 @@ export const authService = {
    * POST /client/auths/{provider}
    */
   async loginWithOAuth(credentials: OAuthCredentials): Promise<OAuthLoginResponse> {
-    try {
-      const { provider } = credentials;
-      
-      // Map credentials to backend format based on provider
-      const backendPayload = provider === 'google'
-        ? { id_token: credentials.idToken, access_token: credentials.accessToken }
-        : { user_id: credentials.userId!, access_token: credentials.accessToken };
+    const { provider } = credentials;
+    
+    // Use discriminated union pattern for provider-specific payloads
+    type OAuthPayload = 
+      | { provider: 'google'; id_token: string; access_token: string }
+      | { provider: 'facebook'; user_id: string; access_token: string };
+    
+    const createPayload = (): OAuthPayload => {
+      return provider === 'google'
+        ? {
+            provider: 'google',
+            id_token: credentials.idToken ?? '',
+            access_token: credentials.accessToken,
+          }
+        : {
+            provider: 'facebook',
+            user_id: credentials.userId ?? '',
+            access_token: credentials.accessToken,
+          };
+    };
 
-      console.log(backendPayload);
+    const backendPayload = createPayload();
+    // Remove provider from payload before sending (backend doesn't need it)
+    const { provider: _, ...payload } = backendPayload;
 
-      const backendResponse = await apiClient.post<BackendOAuthLoginResponse>(
-        `/client/auths/${provider}`,
-        backendPayload,
-        { skipAuth: true }
-      );
+    const backendResponse = await apiClient.post<BackendOAuthLoginResponse>(
+      `/client/auths/${provider}`,
+      payload,
+      { skipAuth: true }
+    );
 
-      const response = transformOAuthResponse(backendResponse.data);
+    const response = transformOAuthResponse(backendResponse.data);
 
-      if (response.token) {
-        storeAuthToken(response.token);
-      }
+    // Use optional chaining for cleaner code
+    response.token && storeAuthToken(response.token);
 
-      return response;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error(`Failed to login with ${credentials.provider}`);
-    }
+    return response;
   },
 
   /**
    * Logout - clear stored tokens
    */
   logout(): void {
-    try {
-      localStorage.removeItem('app_auth_token');
-    } catch (error) {
-      console.warn('Failed to remove auth token:', error);
-    }
+    storageService.remove('app_auth_token');
   },
 };

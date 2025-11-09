@@ -59,18 +59,9 @@ declare global {
  * Note: You'll need to set up a Facebook App ID in your Facebook Developers Console
  * and add it to your environment variables
  */
-// Get Facebook App ID from environment variable or use empty string
-// Using type assertion to access Vite env variables
-const getEnvVar = (key: string, defaultValue: string): string => {
-  try {
-    // @ts-ignore - Vite env variables are available at runtime
-    return import.meta.env[key] || defaultValue;
-  } catch {
-    return defaultValue;
-  }
-};
+import { getEnvironmentVariable } from './utils/environment';
 
-const FACEBOOK_APP_ID = getEnvVar('VITE_FACEBOOK_APP_ID', '');
+const FACEBOOK_APP_ID = getEnvironmentVariable('VITE_FACEBOOK_APP_ID', '');
 
 /**
  * Load Facebook SDK script

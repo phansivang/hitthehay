@@ -1,6 +1,9 @@
 /**
  * React Hook for Facebook Authentication
  * Provides easy-to-use Facebook Sign-In functionality
+ * 
+ * @deprecated This hook is deprecated. Please use the unified `useOAuth` hook instead.
+ * This hook will be removed in a future version.
  */
 
 import { useEffect, useCallback, useState } from 'react';

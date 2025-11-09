@@ -3,7 +3,7 @@
  * Provides a single hook interface for all OAuth providers
  */
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import type { UseOAuthOptions, UseOAuthReturn, OAuthCredentials } from '@/shared/types/oauth';
 import { getOAuthHandler } from '@/shared/lib/oauth/providers';
 
@@ -35,16 +35,32 @@ export const useOAuth = (options: UseOAuthOptions): UseOAuthReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const handler = getOAuthHandler(provider);
+  // Memoize handler to prevent unnecessary re-renders
+  const handler = useMemo(() => getOAuthHandler(provider), [provider]);
+  
+  // Use refs for callbacks to avoid dependency issues and prevent memory leaks
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  
+  // Update refs when callbacks change
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+  }, [onSuccess, onError]);
 
   // Load provider script
   useEffect(() => {
     if (!autoLoad) return;
 
+    let isMounted = true;
     setIsLoading(true);
+
     handler
       .loadScript()
       .then(() => {
+        // Check if component is still mounted before updating state
+        if (!isMounted) return;
+        
         setIsLoaded(true);
         setIsLoading(false);
         setError(null);
@@ -53,37 +69,45 @@ export const useOAuth = (options: UseOAuthOptions): UseOAuthReturn => {
         // This prevents errors from calling getLoginStatus on HTTP pages
       })
       .catch((err) => {
+        // Check if component is still mounted before updating state
+        if (!isMounted) return;
+        
         const error = err instanceof Error ? err : new Error(`Failed to load ${provider} SDK`);
         setError(error);
         setIsLoading(false);
-        onError?.(error);
+        onErrorRef.current?.(error);
       });
-  }, [provider, autoLoad, onSuccess, onError, handler]);
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      isMounted = false;
+    };
+  }, [provider, autoLoad, handler]);
 
   // Sign in function
   const signIn = useCallback(() => {
     if (!isLoaded) {
       const err = new Error(`${provider} SDK not loaded yet`);
       setError(err);
-      onError?.(err);
+      onErrorRef.current?.(err);
       return;
     }
 
-    if (!onSuccess) {
+    if (!onSuccessRef.current) {
       const err = new Error('onSuccess callback is required');
       setError(err);
-      onError?.(err);
+      onErrorRef.current?.(err);
       return;
     }
 
     try {
-      handler.promptLogin(onSuccess, onError);
+      handler.promptLogin(onSuccessRef.current, onErrorRef.current);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(`Failed to prompt ${provider} login`);
       setError(error);
-      onError?.(error);
+      onErrorRef.current?.(error);
     }
-  }, [isLoaded, provider, onSuccess, onError, handler]);
+  }, [isLoaded, provider, handler]);
 
   return {
     isLoaded,

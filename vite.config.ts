@@ -30,6 +30,18 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+          '/client': {
+            target: 'http://localhost:8080',
+            changeOrigin: true,
+            secure: false,
+          },
+          '/api': {
+            target: 'http://localhost:8080',
+            changeOrigin: true,
+            secure: false,
+          },
+        },
       },
       preview: {
         port: 3000,

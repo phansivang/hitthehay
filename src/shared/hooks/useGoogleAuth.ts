@@ -1,6 +1,9 @@
 /**
  * React Hook for Google Authentication
  * Provides easy-to-use Google Sign-In functionality
+ * 
+ * @deprecated This hook is deprecated. Please use the unified `useOAuth` hook instead.
+ * This hook will be removed in a future version.
  */
 
 import { useEffect, useCallback, useState } from 'react';

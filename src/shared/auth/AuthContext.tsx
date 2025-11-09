@@ -1,61 +1,54 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { storageService } from '@/shared/lib/utils/storage';
 
 export type UserRole = 'guest' | 'user' | 'admin';
 
 export interface AuthUser {
-  username: string;
-  role: UserRole;
+  readonly username: string;
+  readonly role: UserRole;
 }
 
 interface AuthContextValue {
-  user: AuthUser | null;
-  signIn: (user: AuthUser) => void;
-  signOut: () => void;
+  readonly user: AuthUser | null;
+  readonly signIn: (user: AuthUser) => void;
+  readonly signOut: () => void;
 }
-
-const STORAGE_KEY = 'app_auth_user';
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as AuthUser;
-        setUser(parsed);
-      }
-    } catch {}
-  }, []);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    // Initialize from storage on mount
+    return storageService.get<AuthUser>('app_auth_user');
+  });
 
   const signIn = (nextUser: AuthUser) => {
     setUser(nextUser);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
-    } catch {}
+    storageService.set('app_auth_user', nextUser);
   };
 
   const signOut = () => {
     setUser(null);
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {}
+    storageService.remove('app_auth_user');
   };
 
-  const value = useMemo<AuthContextValue>(() => ({
-    user,
-    signIn,
-    signOut,
-  }), [user]);
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      signIn,
+      signOut,
+    }),
+    [user]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuthContext = (): AuthContextValue => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuthContext must be used within AuthProvider');
+  if (!ctx) {
+    throw new Error('useAuthContext must be used within AuthProvider');
+  }
   return ctx;
 };
 
