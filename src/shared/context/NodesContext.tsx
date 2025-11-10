@@ -9,13 +9,11 @@ interface NodesContextValue {
   error: Error | null;
   refetch: () => Promise<void>;
   getNodeIdByType: (nodeType: string) => string | null;
-  getNodeIdByName: (nodeName: string) => string | null;
   getNodeCodeByType: (nodeType: string) => string | null;
 }
 
 const NodesContext = createContext<NodesContextValue | undefined>(undefined);
 
-// Module-level cache to prevent duplicate API calls across StrictMode mounts
 interface NodesCache {
   promise: Promise<{ sidebarNodes: SidebarNode[]; apiNodes: ApiNode[] }> | null;
   sidebarNodes: SidebarNode[] | null;
@@ -34,12 +32,10 @@ const nodesCache: NodesCache = {
 };
 
 const fetchNodesData = async (force = false): Promise<{ sidebarNodes: SidebarNode[]; apiNodes: ApiNode[] }> => {
-  // If there's an ongoing request and not forcing, wait for it (prevents duplicate requests)
   if (nodesCache.promise && !force) {
     return nodesCache.promise;
   }
 
-  // If we have fresh cached data and not forcing, return it
   if (!force && nodesCache.sidebarNodes && nodesCache.apiNodes && nodesCache.timestamp) {
     const age = Date.now() - nodesCache.timestamp;
     if (age < CACHE_TTL) {
@@ -50,7 +46,6 @@ const fetchNodesData = async (force = false): Promise<{ sidebarNodes: SidebarNod
     }
   }
 
-  // Create a new fetch promise (this will be shared across all StrictMode mounts)
   nodesCache.promise = (async () => {
     try {
       const response = await nodesService.getNodes();
@@ -82,12 +77,10 @@ const fetchNodesData = async (force = false): Promise<{ sidebarNodes: SidebarNod
 export const NodesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [nodes, setNodes] = useState<SidebarNode[]>(nodesCache.sidebarNodes ?? []);
   const [apiNodes, setApiNodes] = useState<ApiNode[]>(nodesCache.apiNodes ?? []);
-  // Loading is true if we don't have data yet (either no cache or promise in progress)
   const [loading, setLoading] = useState<boolean>(!nodesCache.sidebarNodes);
   const [error, setError] = useState<Error | null>(nodesCache.error ?? null);
 
   useEffect(() => {
-    // If we already have cached data, use it immediately
     if (nodesCache.sidebarNodes && nodesCache.apiNodes && nodesCache.timestamp) {
       const age = Date.now() - nodesCache.timestamp;
       if (age < CACHE_TTL) {
@@ -99,7 +92,6 @@ export const NodesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    // Fetch data - if another mount already started fetching, this will wait for the same promise
     setLoading(true);
     setError(null);
     fetchNodesData()
@@ -119,17 +111,16 @@ export const NodesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const refetch = async () => {
-    // Clear cache to force a fresh fetch
     nodesCache.sidebarNodes = null;
     nodesCache.apiNodes = null;
     nodesCache.error = null;
     nodesCache.timestamp = null;
-    nodesCache.promise = null; // Clear any ongoing promise
+    nodesCache.promise = null;
 
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchNodesData(true); // Force fresh fetch
+      const data = await fetchNodesData(true);
       setNodes(data.sidebarNodes);
       setApiNodes(data.apiNodes);
       setLoading(false);
@@ -143,34 +134,22 @@ export const NodesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Create mapping from nodeType to node_id
   const getNodeIdByType = useCallback((nodeType: string): string | null => {
-    // Find the SidebarNode by type to get the label (name)
     const sidebarNode = nodes.find((n) => n.type === nodeType);
     if (!sidebarNode) {
       return null;
     }
 
-    // Find the ApiNode by name to get the id
     const apiNode = apiNodes.find((n) => n.name === sidebarNode.label);
     return apiNode?.id ?? null;
   }, [nodes, apiNodes]);
 
-  // Create mapping from nodeName to node_id
-  const getNodeIdByName = useCallback((nodeName: string): string | null => {
-    const apiNode = apiNodes.find((n) => n.name === nodeName);
-    return apiNode?.id ?? null;
-  }, [apiNodes]);
-
-  // Create mapping from nodeType to node code
   const getNodeCodeByType = useCallback((nodeType: string): string | null => {
-    // Find the SidebarNode by type to get the label (name)
     const sidebarNode = nodes.find((n) => n.type === nodeType);
     if (!sidebarNode) {
       return null;
     }
 
-    // Find the ApiNode by name to get the code
     const apiNode = apiNodes.find((n) => n.name === sidebarNode.label);
     return apiNode?.code ?? null;
   }, [nodes, apiNodes]);
@@ -182,10 +161,9 @@ export const NodesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       error,
       refetch,
       getNodeIdByType,
-      getNodeIdByName,
       getNodeCodeByType,
     }),
-    [nodes, loading, error, getNodeIdByType, getNodeIdByName, getNodeCodeByType]
+    [nodes, loading, error, getNodeIdByType, getNodeCodeByType]
   );
 
   return <NodesContext.Provider value={value}>{children}</NodesContext.Provider>;

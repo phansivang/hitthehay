@@ -1,16 +1,14 @@
 /**
  * React Hook for Google Authentication
  * Provides easy-to-use Google Sign-In functionality
- * 
- * @deprecated This hook is deprecated. Please use the unified `useOAuth` hook instead.
- * This hook will be removed in a future version.
  */
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { loadGoogleScript, initializeGoogleSignIn, promptGoogleSignIn } from '@/shared/lib/google-auth';
+import type { OAuthCredentials } from '@/shared/types/oauth';
 
 interface UseGoogleAuthOptions {
-  onSuccess?: (idToken: string, accessToken: string) => void;
+  onSuccess?: (credentials: OAuthCredentials) => void;
   onError?: (error: Error) => void;
   autoLoad?: boolean;
 }
@@ -28,7 +26,7 @@ interface UseGoogleAuthReturn {
  * @example
  * ```tsx
  * const { isLoaded, signIn, error } = useGoogleAuth({
- *   onSuccess: (idToken, accessToken) => {
+ *   onSuccess: (credentials) => {
  *     // Handle successful authentication
  *   },
  *   onError: (error) => {
@@ -49,55 +47,71 @@ export const useGoogleAuth = (options: UseGoogleAuthOptions = {}): UseGoogleAuth
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // Load Google script
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+  }, [onSuccess, onError]);
+
   useEffect(() => {
     if (!autoLoad) return;
 
+    let isMounted = true;
     setIsLoading(true);
+
     loadGoogleScript()
       .then(() => {
+        if (!isMounted) return;
         setIsLoaded(true);
         setIsLoading(false);
         setError(null);
       })
       .catch((err) => {
+        if (!isMounted) return;
         const error = err instanceof Error ? err : new Error('Failed to load Google Identity Services');
         setError(error);
         setIsLoading(false);
-        onError?.(error);
+        onErrorRef.current?.(error);
       });
-  }, [autoLoad, onError]);
 
-  // Initialize Google Sign-In when loaded
-  useEffect(() => {
-    if (!isLoaded || !onSuccess) return;
+    return () => {
+      isMounted = false;
+    };
+  }, [autoLoad]);
 
-    try {
-      initializeGoogleSignIn(onSuccess);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to initialize Google Sign-In');
-      setError(error);
-      onError?.(error);
-    }
-  }, [isLoaded, onSuccess, onError]);
-
-  // Sign in function
   const signIn = useCallback(() => {
     if (!isLoaded) {
       const err = new Error('Google Identity Services not loaded yet');
       setError(err);
-      onError?.(err);
+      onErrorRef.current?.(err);
+      return;
+    }
+
+    if (!onSuccessRef.current) {
+      const err = new Error('onSuccess callback is required');
+      setError(err);
+      onErrorRef.current?.(err);
       return;
     }
 
     try {
+      initializeGoogleSignIn((idToken, accessToken) => {
+        const credentials: OAuthCredentials = {
+          provider: 'google',
+          idToken,
+          accessToken,
+        };
+        onSuccessRef.current?.(credentials);
+      });
       promptGoogleSignIn();
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to prompt Google Sign-In');
       setError(error);
-      onError?.(error);
+      onErrorRef.current?.(error);
     }
-  }, [isLoaded, onError]);
+  }, [isLoaded]);
 
   return {
     isLoaded,
@@ -106,5 +120,4 @@ export const useGoogleAuth = (options: UseGoogleAuthOptions = {}): UseGoogleAuth
     signIn,
   };
 };
-
 

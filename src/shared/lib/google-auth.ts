@@ -70,16 +70,13 @@ const GOOGLE_CLIENT_ID = getEnvironmentVariable('VITE_GOOGLE_CLIENT_ID', '');
  */
 export const loadGoogleScript = (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    // Check if already loaded
     if (window.google?.accounts) {
       resolve();
       return;
     }
 
-    // Check if script is already in the DOM
     const existingScript = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
     if (existingScript) {
-      // Wait for it to load
       const checkInterval = setInterval(() => {
         if (window.google?.accounts) {
           clearInterval(checkInterval);
@@ -87,7 +84,6 @@ export const loadGoogleScript = (): Promise<void> => {
         }
       }, 100);
 
-      // Timeout after 10 seconds
       setTimeout(() => {
         clearInterval(checkInterval);
         if (!window.google?.accounts) {
@@ -97,13 +93,11 @@ export const loadGoogleScript = (): Promise<void> => {
       return;
     }
 
-    // Create and load script
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      // Wait a bit for initialization
       setTimeout(() => {
         if (window.google?.accounts) {
           resolve();
@@ -119,10 +113,6 @@ export const loadGoogleScript = (): Promise<void> => {
   });
 };
 
-/**
- * Initialize Google Sign-In
- * Uses a simpler approach to avoid COOP issues
- */
 export const initializeGoogleSignIn = (onSuccess: (idToken: string, accessToken: string) => void): void => {
   if (!window.google?.accounts) {
     throw new Error('Google Identity Services not loaded. Call loadGoogleScript() first.');
@@ -132,12 +122,10 @@ export const initializeGoogleSignIn = (onSuccess: (idToken: string, accessToken:
     throw new Error('Google Client ID not configured. Set VITE_GOOGLE_CLIENT_ID in your environment variables.');
   }
 
-  // Store success callback globally to access from token client
-  (window as any).__googleAuthSuccess = onSuccess;
+  let pendingIdToken: string | null = null;
+  let accessTokenReceived = false;
 
-  // Initialize OAuth2 token client for access token
-  // Store token client globally for later use
-  (window as any).__googleTokenClient = window.google.accounts.oauth2.initTokenClient({
+  const tokenClient = window.google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
     scope: 'openid email profile',
     callback: (tokenResponse) => {
@@ -147,75 +135,53 @@ export const initializeGoogleSignIn = (onSuccess: (idToken: string, accessToken:
       }
 
       const accessToken = tokenResponse.access_token;
-      const pendingIdToken = (window as any).__pendingIdToken;
-      const successCallback = (window as any).__googleAuthSuccess;
+      accessTokenReceived = true;
 
-      if (accessToken && pendingIdToken && successCallback) {
-        (window as any).__accessTokenReceived = true;
-        delete (window as any).__pendingIdToken;
-        successCallback(pendingIdToken, accessToken);
+      if (accessToken && pendingIdToken) {
+        const idToken = pendingIdToken;
+        pendingIdToken = null;
+        onSuccess(idToken, accessToken);
       }
     },
     error_callback: (error) => {
       console.error('OAuth2 error:', error);
-      // Fallback: try with just ID token
-      const pendingIdToken = (window as any).__pendingIdToken;
-      const successCallback = (window as any).__googleAuthSuccess;
-      if (pendingIdToken && successCallback) {
-        delete (window as any).__pendingIdToken;
-        successCallback(pendingIdToken, '');
+      if (pendingIdToken) {
+        const idToken = pendingIdToken;
+        pendingIdToken = null;
+        onSuccess(idToken, '');
       }
     },
   });
 
-  // Initialize Google Identity Services for ID token
   window.google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
     callback: async (response: GoogleAuthResponse) => {
-      // Get the id_token from the response
       const idToken = response.credential;
+      pendingIdToken = idToken;
+      accessTokenReceived = false;
 
-      // Store ID token temporarily
-      (window as any).__pendingIdToken = idToken;
-
-      // Request access token
-      // Use empty prompt to try silent auth first, then fallback to consent if needed
       try {
-        const storedTokenClient = (window as any).__googleTokenClient;
-        if (storedTokenClient) {
-          // Try without prompt first (silent auth)
-          storedTokenClient.requestAccessToken({ prompt: '' });
-          
-          // Fallback: if access token doesn't come within 2 seconds, try with consent
-          setTimeout(() => {
-            const pendingIdToken = (window as any).__pendingIdToken;
-            if (pendingIdToken && !(window as any).__accessTokenReceived) {
-              // Try with consent prompt
-              try {
-                storedTokenClient.requestAccessToken({ prompt: 'consent' });
-              } catch (err) {
-                // If that also fails, use ID token only
-                const successCallback = (window as any).__googleAuthSuccess;
-                if (successCallback) {
-                  delete (window as any).__pendingIdToken;
-                  successCallback(pendingIdToken, '');
-                }
+        tokenClient.requestAccessToken({ prompt: '' });
+        
+        setTimeout(() => {
+          if (pendingIdToken && !accessTokenReceived) {
+            try {
+              tokenClient.requestAccessToken({ prompt: 'consent' });
+            } catch (err) {
+              if (pendingIdToken) {
+                const idToken = pendingIdToken;
+                pendingIdToken = null;
+                onSuccess(idToken, '');
               }
             }
-          }, 2000);
-        } else {
-          // Fallback: use ID token only
-          const successCallback = (window as any).__googleAuthSuccess;
-          if (successCallback) {
-            successCallback(idToken, '');
           }
-        }
+        }, 2000);
       } catch (error) {
         console.error('Error requesting access token:', error);
-        // Fallback: use ID token only
-        const successCallback = (window as any).__googleAuthSuccess;
-        if (successCallback) {
-          successCallback(idToken, '');
+        if (pendingIdToken) {
+          const idToken = pendingIdToken;
+          pendingIdToken = null;
+          onSuccess(idToken, '');
         }
       }
     },
@@ -224,9 +190,6 @@ export const initializeGoogleSignIn = (onSuccess: (idToken: string, accessToken:
   });
 };
 
-/**
- * Trigger Google Sign-In prompt
- */
 export const promptGoogleSignIn = (): void => {
   if (!window.google?.accounts) {
     throw new Error('Google Identity Services not loaded');

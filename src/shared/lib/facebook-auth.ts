@@ -68,7 +68,6 @@ const FACEBOOK_APP_ID = getEnvironmentVariable('VITE_FACEBOOK_APP_ID', '');
  */
 export const loadFacebookScript = (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    // Check if already loaded and initialized
     if (window.FB) {
       resolve();
       return;
@@ -79,10 +78,8 @@ export const loadFacebookScript = (): Promise<void> => {
       return;
     }
 
-    // Check if script is already in the DOM
     const existingScript = document.querySelector('script[src*="connect.facebook.net"]');
     if (existingScript) {
-      // Wait for it to load
       const checkInterval = setInterval(() => {
         if (window.FB) {
           clearInterval(checkInterval);
@@ -90,7 +87,6 @@ export const loadFacebookScript = (): Promise<void> => {
         }
       }, 100);
 
-      // Timeout after 10 seconds
       setTimeout(() => {
         clearInterval(checkInterval);
         if (!window.FB) {
@@ -100,7 +96,6 @@ export const loadFacebookScript = (): Promise<void> => {
       return;
     }
 
-    // Set up initialization callback
     window.fbAsyncInit = () => {
       if (!FACEBOOK_APP_ID) {
         reject(new Error('Facebook App ID not configured. Set VITE_FACEBOOK_APP_ID in your environment variables.'));
@@ -117,7 +112,6 @@ export const loadFacebookScript = (): Promise<void> => {
       resolve();
     };
 
-    // Create and load script
     const script = document.createElement('script');
     script.async = true;
     script.defer = true;
@@ -129,11 +123,6 @@ export const loadFacebookScript = (): Promise<void> => {
   });
 };
 
-/**
- * Initialize Facebook Login
- * Note: We don't check login status here to avoid errors on HTTP pages.
- * Login status will be checked when user actually clicks the login button.
- */
 export const initializeFacebookLogin = (onSuccess: (userId: string, accessToken: string) => void, onError?: (error: Error) => void): void => {
   if (!window.FB) {
     throw new Error('Facebook SDK not loaded. Call loadFacebookScript() first.');
@@ -142,14 +131,8 @@ export const initializeFacebookLogin = (onSuccess: (userId: string, accessToken:
   if (!FACEBOOK_APP_ID) {
     throw new Error('Facebook App ID not configured. Set VITE_FACEBOOK_APP_ID in your environment variables.');
   }
-
-  // Just initialize - don't check login status automatically
-  // This prevents errors on HTTP pages and is only needed when user clicks login
 };
 
-/**
- * Trigger Facebook Login prompt
- */
 export const promptFacebookLogin = (
   onSuccess: (userId: string, accessToken: string) => void,
   onError?: (error: Error) => void

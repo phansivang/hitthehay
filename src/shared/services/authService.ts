@@ -6,7 +6,7 @@
 import { apiClient } from '@/shared/lib/api-client';
 import { storageService } from '@/shared/lib/utils/storage';
 import type { AuthUser } from '@/shared/auth/AuthContext';
-import type { OAuthProvider, OAuthCredentials } from '@/shared/types/oauth';
+import type { OAuthCredentials } from '@/shared/types/oauth';
 
 export interface LoginRequest {
   username_or_email: string;
@@ -51,12 +51,6 @@ export interface OAuthLoginResponse {
   user: AuthUser;
   token?: string;
   refreshToken?: string;
-}
-
-export interface ApiErrorResponse {
-  message: string;
-  error?: string;
-  statusCode?: number;
 }
 
 /**

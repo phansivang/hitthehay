@@ -47,21 +47,12 @@ export class ApiClient {
     return storageService.get<string>('app_auth_token');
   }
 
-  /**
-   * Build full URL from endpoint using strategy pattern
-   */
   private buildURL(endpoint: string): string {
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    
-    // Use nullish coalescing and optional chaining for cleaner code
     const normalizedBase = this.baseURL?.replace(/\/$/, '') ?? '';
-    
     return normalizedBase ? `${normalizedBase}${cleanEndpoint}` : cleanEndpoint;
   }
 
-  /**
-   * Make HTTP request with error handling
-   */
   private async request<T>(endpoint: string,options: RequestOptions = {}): Promise<T> {
     const url = this.buildURL(endpoint);
     const headers: HeadersInit = {
@@ -69,7 +60,6 @@ export class ApiClient {
       ...options.headers,
     };
 
-    // Add auth token if available
     const token = this.getAuthToken();
     const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
     
@@ -84,12 +74,10 @@ export class ApiClient {
         headers: finalHeaders,
       });
 
-      // Backend always returns JSON, so always parse as JSON
       let data: unknown;
       try {
         data = await response.json();
       } catch (parseError) {
-        // If JSON parsing fails, throw an error
         throw new ApiClientError(
           `Failed to parse response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`,
           response.status,
@@ -97,9 +85,7 @@ export class ApiClient {
         );
       }
 
-      // Type guard for error responses
-      const isErrorResponse = !response.ok;
-      if (isErrorResponse) {
+      if (!response.ok) {
         const errorMessage = (data as { message?: string })?.message ?? `Request failed with status ${response.status}`;
         throw new ApiClientError(errorMessage, response.status, data);
       }
@@ -110,7 +96,6 @@ export class ApiClient {
         throw error;
       }
 
-      // Transform unknown error to typed error
       const typedError = createTypedError(error);
       throw new ApiClientError(
         typedError.message,
@@ -120,9 +105,6 @@ export class ApiClient {
     }
   }
 
-  /**
-   * GET request
-   */
   async get<T>(endpoint: string, options?: RequestOptions): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
@@ -130,9 +112,6 @@ export class ApiClient {
     });
   }
 
-  /**
-   * POST request
-   */
   async post<T>(endpoint: string, data?: unknown, options?: RequestOptions): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
@@ -141,9 +120,6 @@ export class ApiClient {
     });
   }
 
-  /**
-   * PUT request
-   */
   async put<T>(endpoint: string, data?: unknown, options?: RequestOptions): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
@@ -152,9 +128,6 @@ export class ApiClient {
     });
   }
 
-  /**
-   * DELETE request
-   */
   async delete<T>(endpoint: string, options?: RequestOptions): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
@@ -162,18 +135,13 @@ export class ApiClient {
     });
   }
 
-  /**
-   * POST request for file upload (form-data)
-   */
   async postFile<T>(endpoint: string, file: File, options?: RequestOptions): Promise<T> {
     const url = this.buildURL(endpoint);
     const formData = new FormData();
     formData.append('file', file);
 
-    // Build headers without Content-Type (browser will set it automatically with boundary for FormData)
     const headers: Record<string, string> = {};
     
-    // Copy existing headers except Content-Type
     if (options?.headers) {
       const headerEntries = options.headers instanceof Headers 
         ? Array.from(options.headers.entries())
@@ -188,7 +156,6 @@ export class ApiClient {
       }
     }
 
-    // Add auth token if available
     const token = this.getAuthToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -202,12 +169,10 @@ export class ApiClient {
         body: formData,
       });
 
-      // Backend always returns JSON, so always parse as JSON
       let data: unknown;
       try {
         data = await response.json();
       } catch (parseError) {
-        // If JSON parsing fails, throw an error
         throw new ApiClientError(
           `Failed to parse response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`,
           response.status,
@@ -236,6 +201,5 @@ export class ApiClient {
   }
 }
 
-// Export singleton instance
 export const apiClient = new ApiClient();
 

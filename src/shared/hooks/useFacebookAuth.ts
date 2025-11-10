@@ -1,16 +1,14 @@
 /**
  * React Hook for Facebook Authentication
  * Provides easy-to-use Facebook Sign-In functionality
- * 
- * @deprecated This hook is deprecated. Please use the unified `useOAuth` hook instead.
- * This hook will be removed in a future version.
  */
 
-import { useEffect, useCallback, useState } from 'react';
-import { loadFacebookScript, initializeFacebookLogin, promptFacebookLogin } from '@/shared/lib/facebook-auth';
+import { useEffect, useCallback, useState, useRef } from 'react';
+import { loadFacebookScript, promptFacebookLogin } from '@/shared/lib/facebook-auth';
+import type { OAuthCredentials } from '@/shared/types/oauth';
 
 interface UseFacebookAuthOptions {
-  onSuccess?: (userId: string, accessToken: string) => void;
+  onSuccess?: (credentials: OAuthCredentials) => void;
   onError?: (error: Error) => void;
   autoLoad?: boolean;
 }
@@ -28,7 +26,7 @@ interface UseFacebookAuthReturn {
  * @example
  * ```tsx
  * const { isLoaded, signIn, error } = useFacebookAuth({
- *   onSuccess: (userId, accessToken) => {
+ *   onSuccess: (credentials) => {
  *     // Handle successful authentication
  *   },
  *   onError: (error) => {
@@ -49,60 +47,76 @@ export const useFacebookAuth = (options: UseFacebookAuthOptions = {}): UseFacebo
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // Load Facebook script
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+  }, [onSuccess, onError]);
+
   useEffect(() => {
     if (!autoLoad) return;
 
+    let isMounted = true;
     setIsLoading(true);
+
     loadFacebookScript()
       .then(() => {
+        if (!isMounted) return;
         setIsLoaded(true);
         setIsLoading(false);
         setError(null);
-        
-        // Initialize Facebook login if callback is provided
-        if (onSuccess) {
-          try {
-            initializeFacebookLogin(onSuccess, onError);
-          } catch (err) {
-            const error = err instanceof Error ? err : new Error('Failed to initialize Facebook Login');
-            setError(error);
-            onError?.(error);
-          }
-        }
       })
       .catch((err) => {
+        if (!isMounted) return;
         const error = err instanceof Error ? err : new Error('Failed to load Facebook SDK');
         setError(error);
         setIsLoading(false);
-        onError?.(error);
+        onErrorRef.current?.(error);
       });
-  }, [autoLoad, onSuccess, onError]);
 
-  // Sign in function
+    return () => {
+      isMounted = false;
+    };
+  }, [autoLoad]);
+
   const signIn = useCallback(() => {
     if (!isLoaded) {
       const err = new Error('Facebook SDK not loaded yet');
       setError(err);
-      onError?.(err);
+      onErrorRef.current?.(err);
       return;
     }
 
-    if (!onSuccess) {
+    if (!onSuccessRef.current) {
       const err = new Error('onSuccess callback is required');
       setError(err);
-      onError?.(err);
+      onErrorRef.current?.(err);
       return;
     }
 
     try {
-      promptFacebookLogin(onSuccess, onError);
+      promptFacebookLogin(
+        (userId, accessToken) => {
+          const credentials: OAuthCredentials = {
+            provider: 'facebook',
+            accessToken,
+            userId,
+          };
+          onSuccessRef.current?.(credentials);
+        },
+        (error) => {
+          setError(error);
+          onErrorRef.current?.(error);
+        }
+      );
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to prompt Facebook Login');
       setError(error);
-      onError?.(error);
+      onErrorRef.current?.(error);
     }
-  }, [isLoaded, onSuccess, onError]);
+  }, [isLoaded]);
 
   return {
     isLoaded,

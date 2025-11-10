@@ -61,7 +61,6 @@ class HasTriggerStrategy implements NodeValidationStrategy {
  */
 class HasSourceOrModelStrategy implements NodeValidationStrategy {
   validate(nodes: Node<NodeData>[]): ValidationResult {
-    const hasVideoSource = nodes.some((n) => n.data.category === NodeCategory.VideoSource);
     const hasAiModel = nodes.some((n) => n.data.category === NodeCategory.AIModels);
     const hasPromptConfig = nodes.some((n) => n.data.category === NodeCategory.PromptConfig);
 
