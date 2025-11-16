@@ -4,7 +4,7 @@ import { Workflow } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   return (
-    <header className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-4 shadow-sm">
+    <header className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-gray-200 z-[60] flex items-center justify-between px-4 shadow-sm">
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2">
           <Workflow className="w-8 h-8 text-[#f65e05]" />

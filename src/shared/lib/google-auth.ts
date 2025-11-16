@@ -14,6 +14,8 @@ interface GoogleAuthError {
   message: string;
 }
 
+interface GooglePromptNotification {}
+
 declare global {
   interface Window {
     google?: {
@@ -25,7 +27,7 @@ declare global {
             auto_select?: boolean;
             cancel_on_tap_outside?: boolean;
           }) => void;
-          prompt: (notification?: () => void) => void;
+          prompt: (notification?: (notification: GooglePromptNotification) => void) => void;
           renderButton: (
             element: HTMLElement,
             config: {
@@ -61,7 +63,7 @@ declare global {
  * Note: You'll need to set up a Google OAuth client ID in your Google Cloud Console
  * and add it to your environment variables
  */
-import { getEnvironmentVariable } from './utils/environment';
+import {getEnvironmentVariable} from './utils/environment';
 
 const GOOGLE_CLIENT_ID = getEnvironmentVariable('VITE_GOOGLE_CLIENT_ID', '');
 
@@ -156,8 +158,7 @@ export const initializeGoogleSignIn = (onSuccess: (idToken: string, accessToken:
   window.google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
     callback: async (response: GoogleAuthResponse) => {
-      const idToken = response.credential;
-      pendingIdToken = idToken;
+      pendingIdToken = response.credential;
       accessTokenReceived = false;
 
       try {

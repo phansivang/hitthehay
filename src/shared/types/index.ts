@@ -16,7 +16,7 @@ export type NodeSettings =
   | { files: unknown[] } // videoUpload
   | { model: string; prompt: string } // aiModelSora2, aiModelSora2Pro, aiModelVeo3
   | { prompt: string } // promptConfig
-  | { account: string; caption: string; hashtags: string } // platformTikTok
+  | {} // platformTikTok uses connect flow only
   | { account: string; title: string; description: string } // platformYouTube
   | { account: string; caption: string } // platformInstagram
   | { account: string; text: string }; // platformFacebook

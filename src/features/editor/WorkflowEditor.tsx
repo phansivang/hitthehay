@@ -32,7 +32,9 @@ const InnerEditor = () => {
   const handleTaskNameSave = useCallback(async (taskName: string) => {
     try {
       const response = await tasksService.createTask(taskName);
-      setTaskId(response.data.id);
+      const taskIdValue = response.data.id;
+      setTaskId(taskIdValue);
+      sessionStorage.setItem('current_task_id', taskIdValue);
       setShowTaskNameModal(false);
     } catch (error) {
       console.error('Error creating task:', error);
@@ -224,6 +226,7 @@ const InnerEditor = () => {
           selectedNode={selectedNode}
           setSelectedNode={setSelectedNode}
           updateNodeSettings={updateNodeSettings}
+          taskId={taskId}
         />
       </div>
     </>

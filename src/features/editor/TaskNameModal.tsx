@@ -45,8 +45,12 @@ const TaskNameModal: React.FC<TaskNameModalProps> = ({ onSave, isOpen }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="w-full max-w-lg mx-4">
+    <>
+      {/* Backdrop that doesn't cover navbar */}
+      <div className="fixed top-14 left-0 right-0 bottom-0 z-50 bg-black/20 pointer-events-auto" />
+      {/* Modal content - positioned below navbar */}
+      <div className="fixed top-14 left-0 right-0 bottom-0 z-50 flex items-center justify-center pointer-events-none">
+        <div className="w-full max-w-lg mx-4 pointer-events-auto">
         <form onSubmit={handleSubmit}>
           <input
             ref={inputRef}
@@ -64,8 +68,9 @@ const TaskNameModal: React.FC<TaskNameModalProps> = ({ onSave, isOpen }) => {
             </div>
           )}
         </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

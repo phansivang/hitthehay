@@ -21,11 +21,12 @@ interface CanvasProps {
   selectedNode: Node<NodeData> | null;
   setSelectedNode: Dispatch<SetStateAction<Node<NodeData> | null>>;
   updateNodeSettings: (nodeId: string, newSettings: any) => void;
+  taskId: string | null;
 }
 
 const Canvas: React.FC<CanvasProps> = ({ 
   nodes, edges, onNodesChange, onEdgesChange, onDrop, 
-  selectedNode, setSelectedNode, updateNodeSettings 
+  selectedNode, setSelectedNode, updateNodeSettings, taskId
 }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
@@ -85,6 +86,7 @@ const Canvas: React.FC<CanvasProps> = ({
         node={selectedNode}
         onClose={() => setSelectedNode(null)}
         onSave={updateNodeSettings}
+        taskId={taskId}
       />
     </div>
   );

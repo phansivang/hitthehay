@@ -9,12 +9,11 @@ import Signup from '@/features/auth/Signup';
 import ForgotPassword from '@/features/auth/ForgotPassword';
 import TermsOfService from '@/features/legal/TermsOfService';
 import PrivacyPolicy from '@/features/legal/PrivacyPolicy';
+import PlatformConfirmed from '@/features/platform/PlatformConfirmed';
 import { NodesProvider } from '@/shared/context/NodesContext';
 import { Layout } from '@/shared/components/Layout';
 
 const AppRouter: React.FC = () => {
-  // Use Vite's BASE_URL for GitHub Pages compatibility
-  // @ts-expect-error - Vite env variables are available at runtime
   const basePath = import.meta.env.BASE_URL || '/';
 
   return (
@@ -26,6 +25,7 @@ const AppRouter: React.FC = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/platform/confirmed" element={<PlatformConfirmed />} />
         <Route
           path="/editor"
           element={

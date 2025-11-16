@@ -99,7 +99,7 @@ const NODE_CONFIGURATIONS: Readonly<Record<NodeName, NodeConfig>> = {
     type: 'platformTikTok',
     category: NodeCategory.Platforms,
     icon: TiktokIcon,
-    defaultSettings: { account: '', caption: '', hashtags: '' },
+    defaultSettings: {},
   },
   'Post to YouTube': {
     name: 'Post to YouTube',

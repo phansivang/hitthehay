@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { X, Loader2, Play } from 'lucide-react';
 import { Node } from 'reactflow';
-import type { NodeData } from '@/shared/types';
+import type {NodeData, NodeSettings} from '@/shared/types';
 import { fileUploadService } from '@/shared/services/fileUploadService';
+import { openTikTokAuthWindow } from '@/shared/lib/tiktok-auth';
+import { useNodesContext } from '@/shared/context/NodesContext';
 
 interface SettingsDrawerProps {
   node: Node<NodeData> | null;
   onClose: () => void;
   onSave: (nodeId: string, settings: any) => void;
+  taskId: string | null;
 }
 
 interface UploadedFile {
@@ -19,31 +22,34 @@ interface UploadedFile {
   error?: string;
 }
 
-const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave }) => {
+function hasFiles(s: NodeSettings | undefined): s is { files: (string | UploadedFile)[] } {
+  return !!s && 'files' in s && Array.isArray((s as any).files);
+}
+
+const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave, taskId }) => {
   const [settings, setSettings] = useState(node?.data.settings || {});
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [loadingVideoUrl, setLoadingVideoUrl] = useState(false);
+  const { getNodeIdByType, getNodeCodeByType } = useNodesContext();
 
   useEffect(() => {
     setSettings(node?.data.settings || {});
-    // Initialize uploaded files from settings if they exist
-    if (node?.data.settings?.files) {
-      const files = Array.isArray(node.data.settings.files) 
-        ? node.data.settings.files.map((file: string | UploadedFile) => 
-            typeof file === 'string' 
-              ? { name: file, status: 'success' as const }
-              : file
-          )
-        : [];
+
+    if (hasFiles(node?.data.settings)) {
+      const files = node!.data.settings!.files.map((file: string | UploadedFile) =>
+          typeof file === 'string' ? { name: file, status: 'success' as const } : file
+      );
       setUploadedFiles(files);
+    } else {
+      setUploadedFiles([]);
     }
   }, [node]);
 
   if (!node) {
     return null;
-  }
+  } 
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -58,6 +64,58 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave }
   const renderSettings = () => {
     if (!settings) return <p>No settings available for this node.</p>;
 
+    if (node.data.nodeType === 'platformTikTok') {
+      const handleTikTokConnect = () => {
+        const currentTaskId = taskId || sessionStorage.getItem('current_task_id');
+        
+        if (!currentTaskId) {
+          alert('Please create a task first before connecting TikTok.');
+          return;
+        }
+
+        const nodeId = getNodeIdByType('platformTikTok');
+        const nodeType = getNodeCodeByType('platformTikTok');
+
+        if (!nodeId || !nodeType) {
+          alert('TikTok node configuration not found. Please refresh the page.');
+          return;
+        }
+
+        const tiktokContext = {
+          taskId: currentTaskId,
+          nodeId,
+          nodeType,
+          position: node.position,
+        };
+        
+        try {
+          localStorage.setItem('tiktok_oauth_context', JSON.stringify(tiktokContext));
+          openTikTokAuthWindow();
+        } catch (error) {
+          console.error('Error storing TikTok OAuth context:', error);
+          alert('Failed to prepare OAuth connection. Please try again.');
+        }
+      };
+
+      return (
+        <div>
+          <p className="text-sm text-gray-700 mb-3">
+            Connect your TikTok account to continue.
+          </p>
+          <button
+            type="button"
+            onClick={handleTikTokConnect}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-black rounded-md shadow-sm hover:opacity-90"
+          >
+            Connect to app
+          </button>
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+            Ensure the redirect URI and scopes are configured in environment variables.
+          </div>
+        </div>
+      );
+    }
+
     if (node.data.nodeType === 'videoUpload') {
       const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) {
@@ -67,7 +125,6 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave }
         const files = Array.from(e.target.files);
         setUploading(true);
 
-        // Add files to the list as pending first
         setUploadedFiles((prev) => {
           const newFiles: UploadedFile[] = files.map(file => ({
             name: file.name,
@@ -76,9 +133,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave }
           return [...prev, ...newFiles];
         });
 
-        // Upload each file - use file name as identifier for reliable tracking
         const uploadPromises = files.map(async (file) => {
-          // Update status to uploading
           setUploadedFiles((prev) => {
             return prev.map((f) =>
               f.name === file.name ? { ...f, status: 'uploading' as const } : f
@@ -86,10 +141,8 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave }
           });
 
           try {
-            // Upload the file
             const response = await fileUploadService.uploadFile(file);
-            
-            // Update status to success with response data
+
             setUploadedFiles((prev) => {
               return prev.map((f) =>
                 f.name === file.name
@@ -104,7 +157,6 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave }
               );
             });
 
-            // Update settings with uploaded file info
             setSettings((prevSettings: any) => {
               const currentFiles = prevSettings.files || [];
               const fileInfo = {
@@ -120,8 +172,7 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave }
           } catch (error) {
             console.error('Error uploading file:', error);
             const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-            
-            // Update status to error
+
             setUploadedFiles((prev) => {
               return prev.map((f) =>
                 f.name === file.name
@@ -164,7 +215,6 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave }
           setVideoPreviewUrl(videoUrl);
         } catch (error) {
           console.error('Error fetching video URL:', error);
-          // Fallback to using the stored URL if available
           if (file.url) {
             setVideoPreviewUrl(file.url);
           }
