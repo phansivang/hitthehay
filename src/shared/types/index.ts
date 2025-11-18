@@ -28,6 +28,8 @@ export interface NodeData {
   readonly category: NodeCategory;
   readonly nodeType: string;
   readonly settings?: NodeSettings;
+  readonly hasValidConfig?: boolean;
+  readonly metadata?: Record<string, unknown>;
 }
 
 export interface SidebarNode {

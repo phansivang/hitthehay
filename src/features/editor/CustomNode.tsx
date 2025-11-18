@@ -3,8 +3,14 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import type { NodeData } from '@/shared/types';
 
 const CustomNode: React.FC<NodeProps<NodeData>> = ({ data, selected }) => {
+  const borderStateClass = selected
+    ? 'border-[#f65e05] shadow-xl'
+    : data.hasValidConfig === false
+      ? 'border-red-500 shadow-md'
+      : 'border-gray-200 shadow-md';
+
   return (
-    <div className={`w-64 bg-white rounded-lg border-2 ${selected ? 'border-[#f65e05] shadow-xl' : 'border-gray-200 shadow-md'} transition-all duration-150`}>
+    <div className={`w-64 bg-white rounded-lg border-2 ${borderStateClass} transition-all duration-150`}>
       <div className="flex items-center space-x-3 p-3 border-b border-gray-200">
         <div className="w-8 h-8 flex items-center justify-center bg-orange-50 text-[#f65e05] rounded-md">
            {React.isValidElement(data.icon) ? React.createElement(data.icon.type, { className: 'w-5 h-5' }) : null}

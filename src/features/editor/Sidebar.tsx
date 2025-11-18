@@ -7,9 +7,10 @@ interface SidebarProps {
   nodeLibrary: SidebarNode[];
   loading: boolean;
   error: Error | null;
+  disabledNodeTypes?: string[];
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ allowedCategories, nodeLibrary, loading, error }) => {
+const Sidebar: React.FC<SidebarProps> = ({ allowedCategories, nodeLibrary, loading, error, disabledNodeTypes = [] }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const onDragStart = (event: React.DragEvent<HTMLDivElement>, nodeType: string) => {
@@ -53,17 +54,23 @@ const Sidebar: React.FC<SidebarProps> = ({ allowedCategories, nodeLibrary, loadi
                 {nodes.map((node) => {
                   const Icon = node.icon;
                   const isAllowed = allowedCategories.includes(node.category);
-                  const title = isAllowed ? node.description : `This node is disabled. Allowed categories: ${allowedCategories.join(', ')}.`;
+                  const isDisabledType = disabledNodeTypes.includes(node.type);
+                  const draggable = isAllowed && !isDisabledType;
+                  const title = !isAllowed
+                    ? `This node is disabled. Allowed categories: ${allowedCategories.join(', ')}.`
+                    : isDisabledType
+                    ? 'This node has already been added to the workflow.'
+                    : node.description;
 
                   return (
                     <div
                       key={node.type}
-                      className={`flex items-center p-2 rounded-md group ${isAllowed ? 'cursor-grab hover:bg-orange-50' : 'cursor-not-allowed opacity-50'}`}
-                      onDragStart={(event) => isAllowed && onDragStart(event, node.type)}
-                      draggable={isAllowed}
+                      className={`flex items-center p-2 rounded-md group ${draggable ? 'cursor-grab hover:bg-orange-50' : 'cursor-not-allowed opacity-50'}`}
+                      onDragStart={(event) => draggable && onDragStart(event, node.type)}
+                      draggable={draggable}
                       title={title}
                     >
-                      <Icon className={`w-5 h-5 ${isAllowed ? 'text-gray-500 group-hover:text-[#f65e05]' : 'text-gray-400'}`} />
+                      <Icon className={`w-5 h-5 ${draggable ? 'text-gray-500 group-hover:text-[#f65e05]' : 'text-gray-400'}`} />
                       {!isCollapsed && <span className="ml-3 text-sm font-medium text-gray-700">{node.label}</span>}
                     </div>
                   );

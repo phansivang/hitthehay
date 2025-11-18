@@ -39,7 +39,7 @@ type NodeName =
 /**
  * Node configuration using discriminated union pattern
  */
-interface NodeConfig {
+export interface NodeConfiguration {
   readonly name: NodeName;
   readonly type: NodeType;
   readonly category: NodeCategory;
@@ -51,7 +51,7 @@ interface NodeConfig {
  * Centralized node configuration mapping
  * Uses const assertion for type safety and immutability
  */
-const NODE_CONFIGURATIONS: Readonly<Record<NodeName, NodeConfig>> = {
+const NODE_CONFIGURATIONS: Readonly<Record<NodeName, NodeConfiguration>> = {
   'Time Trigger': {
     name: 'Time Trigger',
     type: 'triggerTime',
@@ -141,8 +141,12 @@ const isActiveNode = (status: string): status is 'ACTIVE' => {
 /**
  * Get node configuration by name
  */
-const getNodeConfig = (name: string): NodeConfig | null => {
+const getNodeConfig = (name: string): NodeConfiguration | null => {
   return isValidNodeName(name) ? NODE_CONFIGURATIONS[name] : null;
+};
+
+export const getNodeConfigurationByName = (name: string): NodeConfiguration | null => {
+  return getNodeConfig(name);
 };
 
 /**

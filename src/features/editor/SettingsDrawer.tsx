@@ -65,6 +65,9 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave, 
     if (!settings) return <p>No settings available for this node.</p>;
 
     if (node.data.nodeType === 'platformTikTok') {
+      const metadata = node.data.metadata as { nodeConfigId?: string } | undefined;
+      const isConnected = Boolean(metadata?.nodeConfigId || node.data.hasValidConfig);
+
       const handleTikTokConnect = () => {
         const currentTaskId = taskId || sessionStorage.getItem('current_task_id');
         
@@ -96,6 +99,17 @@ const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ node, onClose, onSave, 
           alert('Failed to prepare OAuth connection. Please try again.');
         }
       };
+
+      if (isConnected) {
+        return (
+          <div className="rounded-md border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+            <p className="font-semibold">APP IS CONNECTED</p>
+            <p className="text-xs text-green-700 mt-1">
+              This TikTok account is already connected for this task. Reconnect only if you need to refresh the credentials.
+            </p>
+          </div>
+        );
+      }
 
       return (
         <div>

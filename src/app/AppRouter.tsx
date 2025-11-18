@@ -47,9 +47,11 @@ const AppRouter: React.FC = () => {
         <Route
           path="/tasks/:id"
           element={
-            <Layout>
-              <TaskDetail />
-            </Layout>
+            <NodesProvider>
+              <Layout>
+                <TaskDetail />
+              </Layout>
+            </NodesProvider>
           }
         />
         <Route

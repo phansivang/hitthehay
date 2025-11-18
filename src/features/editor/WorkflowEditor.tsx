@@ -4,7 +4,7 @@ import Canvas from './Canvas';
 import TaskNameModal from './TaskNameModal';
 import { ReactFlowProvider, useNodesState, useEdgesState, useReactFlow, Node } from 'reactflow';
 import { useNodesContext } from '@/shared/context/NodesContext';
-import { NodeData } from '@/shared/types';
+import { NodeCategory, NodeData } from '@/shared/types';
 import { validateNodeWorkflow, canAddNode } from './strategies/node-validation-strategy';
 import {
   createNodeIdGenerator,
@@ -56,6 +56,14 @@ const InnerEditor = () => {
       const nodeInfo = nodeLibrary.find((n) => n.type === type);
       if (!nodeInfo) {
         return;
+      }
+
+      if (nodeInfo.category === NodeCategory.Platforms) {
+        const alreadyHasPlatform = nodes.some((node) => node.data.nodeType === nodeInfo.type);
+        if (alreadyHasPlatform) {
+          alert('This platform is already connected in the workflow.');
+          return;
+        }
       }
 
       const validationResult = canAddNode(nodes, nodeInfo.category);
@@ -204,6 +212,14 @@ const InnerEditor = () => {
     [setNodes, nodes, taskId, getNodeIdByType, getNodeCodeByType]
   );
 
+  const disabledPlatformTypes = useMemo(
+    () =>
+      nodes
+        .filter((node) => node.data.category === NodeCategory.Platforms)
+        .map((node) => node.data.nodeType),
+    [nodes]
+  );
+
   return (
     <>
       <TaskNameModal 
@@ -216,6 +232,7 @@ const InnerEditor = () => {
           nodeLibrary={nodeLibrary}
           loading={loading}
           error={error}
+          disabledNodeTypes={disabledPlatformTypes}
         />
         <Canvas
           nodes={nodes}

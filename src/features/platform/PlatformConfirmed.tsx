@@ -3,6 +3,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '@/shared/lib/api-client';
 import { workflowNodesService } from '@/shared/services/workflowNodesService';
 
+interface StoreTiktokConfigResponse {
+  message?: string;
+  status_code?: number;
+}
+
 const PlatformConfirmed: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -73,10 +78,20 @@ const PlatformConfirmed: React.FC = () => {
 
           // Send both code and workflow_node_id to the API
           // POST /client/store/tiktok/config
-          await apiClient.post('/client/store/tiktok/config', { 
+          const storeResponse = await apiClient.post<StoreTiktokConfigResponse>('/client/store/tiktok/config', { 
             code,
             workflow_node_id: workflowNodeId
           });
+
+          const isSuccessfulResponse =
+            storeResponse?.status_code === 200 ||
+            storeResponse?.message?.toUpperCase() === 'SUCCESSFUL';
+
+          if (!isSuccessfulResponse) {
+            throw new Error(
+              storeResponse?.message ?? 'Unexpected response while storing TikTok configuration.'
+            );
+          }
 
           // Clean up stored context
           localStorage.removeItem('tiktok_oauth_context');
@@ -125,8 +140,8 @@ const PlatformConfirmed: React.FC = () => {
               </svg>
             </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Successfully Connected!</h2>
-            <p className="text-gray-600 mb-4">Your TikTok account has been connected successfully.</p>
-            <p className="text-sm text-gray-500">Redirecting to editor...</p>
+            <p className="text-gray-600 mb-4">Your TikTok account has been connected successfully. You can close this tab and return to the editor.</p>
+            <p className="text-sm text-gray-500">We will redirect you automatically in a moment.</p>
           </>
         )}
         
